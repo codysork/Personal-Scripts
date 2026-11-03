@@ -5,21 +5,52 @@
 # @modified 2026-10-29
 # @description Installs all scripts in this repo to the system
 
+#------------------------------------------------------------------------------
+# Functions
+#-------------------------------------------------------------------------------
+
+info() {
+    printf '%b[INFO]%b %s\n' "$BLUE" "$RESET" "$1"
+}
+
+success() {
+    printf '%b[ OK ]%b %s\n' "$GREEN" "$RESET" "$1"
+}
+
+warning() {
+    printf '%b[WARN]%b %s\n' "$YELLOW" "$RESET" "$1"
+}
+
+error() {
+    printf '%b[FAIL]%b %s\n' "$RED" "$RESET" "$1"
+}
+
+#------------------------------------------------------------------------------
+# Main
+#-------------------------------------------------------------------------------
+
 # Require root
 if [ "$(id -u)" != "0" ]; then
-    echo "[ERROR] This script must be run as root"
+    error "This script must be run as root."
     exit 1
 fi
 
 # Install scripts
 for file in $(ls *.sh); do
-    echo "[[INFO] Installing $file"
-    sudo install -m 755 $file /usr/local/bin
+
+    if [ "$file" = "install.sh" ]; then
+        info "Skipping $file..."
+        continue
+    elif [ "$file" = "uninstall.sh" ]; then
+        info "Skipping $file..."
+        continue
+    fi
+
+    info "Installing $file..."
+    if ! sudo install -m 755 $file /usr/local/bin; then
+        error "Failed to install $file."
+    fi
+
 done
 
-# Install config file
-echo "[INFO] Installing config file"
-if [ ! -d ~/.my-scripts ]; then
-    mkdir ~/.my-scripts
-fi
-sudo install -m 644 config ~/.my-scripts/config
+success "All scripts have been installed."
