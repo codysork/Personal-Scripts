@@ -193,64 +193,35 @@ check_remote_maintenance() {
     fi
 }
 
-# @purpose Sends a maintenance reminder
-reminders() {
-
-    if (( LOCAL_DUE && REMOTE_DUE )); then
-        notify-send \
-            -a "maintenance-reminder.sh" \
-            -u normal \
-            "System Maintenance" \
-            "Local and server maintenance are due."
-
-    elif (( LOCAL_DUE )); then
-        notify-send \
-            -a "maintenance-reminder.sh" \
-            -u normal \
-            "System Maintenance" \
-            "Time to run your local arch-maintenance.sh."
-
-    elif (( REMOTE_DUE )); then
-        notify-send \
-            -a "maintenance-reminder.sh" \
-            -u normal \
-            "Server Maintenance" \
-            "Time to run maintenance on $SERVER."
-    fi
-}
-
-#------------------------------------------------------------------------------
-# Main
-#------------------------------------------------------------------------------
-
-# Setup
-confirm_state_dir
-initialize_local_countdown
-
-# Check local maintenance
-check_local_maintenance
-
-# Check remote maintenance (if configured)
-if [[ -n "$SERVER" ]]; then
-
-    if validate_server; then
-
-        if initialize_remote_countdown; then
-            check_remote_maintenance
-        else
-            info "Could not initialize remote countdown."
-        fi
-
-    else
-        info "Server unavailable. Skipping remote maintenance check."
-    fi
-
+# Send reminders if maintenance is pending
+# Send maintenance status notifications
+if (( LOCAL_DUE )); then
+    notify-send \
+        -a "maintenance-reminder.sh" \
+        -u normal \
+        "Local Maintenance Due" \
+        "Time to run your local arch-maintenance.sh."
+else
+    notify-send \
+        -a "maintenance-reminder.sh" \
+        -u low \
+        "Local Maintenance: Good to Go!" \
+        "No local maintenance is currently due."
 fi
 
-# Send reminders if maintenance is pending
-if (( LOCAL_DUE || REMOTE_DUE )); then
-    reminders
-else
-    info "No maintenance reminders necessary."
+if [[ -n "$SERVER" ]]; then
+    if (( REMOTE_DUE )); then
+        notify-send \
+            -a "maintenance-reminder.sh" \
+            -u normal \
+            "Remote Maintenance Due" \
+            "Time to run maintenance on $SERVER."
+    else
+        notify-send \
+            -a "maintenance-reminder.sh" \
+            -u low \
+            "Remote Maintenance: Good to Go!" \
+            "No remote maintenance is currently due."
+    fi
 fi
 
