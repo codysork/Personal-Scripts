@@ -34,6 +34,11 @@ MAX_BACKUP_AGE_DAYS=30
 
 trap 'rm -rf "$TMPDIR_SCRIPT"' EXIT
 
+# Backup
+TIMESTAMP=$(date '+%Y%m%d%H%M%S')
+ARCHIVE_HEADER="sorkhackmac16-backup"
+ARCHIVE="$BACKUP_DIR/$ARCHIVE_HEADER-$TIMESTAMP.tar.gz"
+
 #------------------------------------------------------------------------------
 # Colors
 #------------------------------------------------------------------------------
@@ -519,7 +524,6 @@ info "  - Pacman package lists"
 info "  - Important application configurations"
 info "  - Any encryption recovery metadata"
 
-
 #------------------------------------------------------------------------------
 # 19. Backup freshness
 #------------------------------------------------------------------------------
@@ -534,13 +538,14 @@ else
 
     latest_backup=""
     latest_timestamp=""
+    latest_epoch=""
 
     while IFS= read -r -d '' filepath; do
 
         filename="${filepath##*/}"
 
-        # Require exactly YYYYMMDDHHmmss.tar.gz
-        if [[ ! "$filename" =~ ^([0-9]{14})\.tar\.gz$ ]]; then
+        # Require ARCHIVE_HEADER-YYYYMMDDHHMMSS.tar.gz
+        if [[ ! "$filename" =~ ^${ARCHIVE_HEADER}-([0-9]{14})\.tar\.gz$ ]]; then
             continue
         fi
 
@@ -559,6 +564,7 @@ else
 
             latest_timestamp="$timestamp"
             latest_backup="$filename"
+            latest_epoch="$backup_epoch"
         fi
 
     done < <(find "$BACKUP_DIR" -maxdepth 1 -type f -print0)
@@ -570,13 +576,7 @@ else
     else
 
         current_epoch=$(date +%s)
-        age_seconds=$((current_epoch - backup_epoch))
-
-        # Recalculate selected backup epoch.
-        age_seconds=$((current_epoch - $(date -d \
-            "${latest_timestamp:0:8} ${latest_timestamp:8:2}:${latest_timestamp:10:2}:${latest_timestamp:12:2}" \
-            +%s)))
-
+        age_seconds=$((current_epoch - latest_epoch))
         age_days=$((age_seconds / 86400))
 
         printf 'Latest backup: %s\n' "$latest_backup"
@@ -600,7 +600,6 @@ else
     fi
 
 fi
-
 
 #------------------------------------------------------------------------------
 # 20. Timeshift freshness
@@ -706,7 +705,35 @@ else
 fi
 
 #------------------------------------------------------------------------------
-# 21. Disable Maintenance Reminder
+# 21. Git Repository Status
+#------------------------------------------------------------------------------
+
+section "GIT REPOSITORY STATUS"
+
+GIT_CHECKER="/usr/local/bin/git-checker.sh"
+
+if [[ ! -x "$GIT_CHECKER" ]]; then
+
+    error "Git checker not found or not executable: $GIT_CHECKER"
+
+else
+
+    info "Checking local Git repositories..."
+
+    if "$GIT_CHECKER"; then
+
+        success "Git repository check completed."
+
+    else
+
+        warning "Git checker reported issues (exit code: $?)."
+
+    fi
+
+fi
+
+#------------------------------------------------------------------------------
+# 22. Disable Maintenance Reminder
 #------------------------------------------------------------------------------
 
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/arch-maintenance"
