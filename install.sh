@@ -75,17 +75,34 @@ for file in "$scriptdir"/*.sh; do
 done
 
 # Deploy the master config template. Never overwrite an existing user-edited
-# config; offer the new template as config.conf.new instead.
-config_source="$scriptdir/config.conf"
-config_target="${XDG_CONFIG_HOME:-$target_home/.config}/user-scripts/config.conf"
+# config; offer the new template as config.new instead. Migrate a legacy
+# config.conf so its custom values are not silently ignored.
+config_source="$scriptdir/config"
+config_dir="${XDG_CONFIG_HOME:-$target_home/.config}/user-scripts"
+config_target="$config_dir/config"
+legacy_config="$config_dir/config.conf"
 
 if [ -f "$config_source" ]; then
-    mkdir -p "$(dirname "$config_target")"
+    mkdir -p "$config_dir"
+
+    migrated=0
+    if [ ! -e "$config_target" ] && [ -f "$legacy_config" ]; then
+        if mv "$legacy_config" "$config_target"; then
+            success "Migrated legacy config to $config_target"
+            migrated=1
+        else
+            warning "Could not migrate legacy config at $legacy_config"
+        fi
+    fi
 
     if [ -e "$config_target" ]; then
         if install -m 644 -o "$target_uid" -g "$target_gid" \
             "$config_source" "$config_target.new"; then
-            warning "Config already exists; wrote updated template to $config_target.new"
+            if [ "$migrated" -eq 1 ]; then
+                warning "Updated template written to $config_target.new"
+            else
+                warning "Config already exists; wrote updated template to $config_target.new"
+            fi
         else
             error "Failed to write updated config template."
         fi

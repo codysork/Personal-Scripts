@@ -28,21 +28,23 @@ set -uo pipefail
 #------------------------------------------------------------------------------
 
 # Load the master config. Environment variables override config values.
-_user_config="${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts/config.conf"
-_repo_config="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/config.conf"
+_config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts"
+_repo_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 _master_config="${USER_SCRIPTS_CONFIG:-}"
 if [[ -z "$_master_config" ]]; then
-    if [[ -r "$_user_config" ]]; then
-        _master_config="$_user_config"
-    elif [[ -r "$_repo_config" ]]; then
-        _master_config="$_repo_config"
+    if [[ -r "$_config_dir/config" ]]; then
+        _master_config="$_config_dir/config"
+    elif [[ -r "$_config_dir/config.conf" ]]; then
+        _master_config="$_config_dir/config.conf"
+    elif [[ -r "$_repo_dir/config" ]]; then
+        _master_config="$_repo_dir/config"
     fi
 fi
 if [[ -n "$_master_config" && -r "$_master_config" ]]; then
     # shellcheck disable=SC1090
     source "$_master_config"
 fi
-unset _user_config _repo_config _master_config
+unset _config_dir _repo_dir _master_config
 
 SCRIPT_NAME="Arch Linux Maintenance"
 TMPDIR_SCRIPT=$(mktemp -d)

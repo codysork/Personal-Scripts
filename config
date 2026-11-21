@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# @file config.conf
+# @file config
 # @author Cody Sork <codysork@gmail.com>
+# @created 2026-11-21
+# @modified 2026-11-21
 # @description Master configuration for the user-scripts suite.
 #
 # This file is sourced by the scripts, not executed. Every scalar value uses
@@ -10,16 +12,24 @@
 #
 # Arrays are config-only; they have no environment-variable override.
 #
+# The defaults below are intentionally generic. Edit the deployed copy to set
+# values for your own machine, keeping the ${VAR-...} form so environment
+# overrides keep working:
+#
+#   BACKUP_DIR="${BACKUP_DIR:-$HOME/Backup}"
+#   SERVER="${SERVER-my.server.example}"
+#
 # install.sh deploys a copy to:
-#   ${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts/config.conf
-# Set USER_SCRIPTS_CONFIG to load a different file.
+#   ${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts/config
+# Set USER_SCRIPTS_CONFIG to load a different file. A legacy config.conf in
+# that directory is still recognized.
 
 #------------------------------------------------------------------------------
 # Shared paths (used by more than one script — keep in sync here)
 #------------------------------------------------------------------------------
 
-BACKUP_DIR="${BACKUP_DIR:-$HOME/Nextcloud/Backup/Local}"
-ARCHIVE_HEADER="${ARCHIVE_HEADER:-sorkhackmac16-backup}"
+BACKUP_DIR="${BACKUP_DIR:-$HOME/Backup}"
+ARCHIVE_HEADER="${ARCHIVE_HEADER:-backup}"
 STATE_DIR="${STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/arch-maintenance}"
 
 #------------------------------------------------------------------------------
@@ -29,19 +39,11 @@ STATE_DIR="${STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/arch-maintenance}"
 BACKUP_SOURCES=(
     "$HOME/.config"
     "$HOME/.local/share"
-    "$HOME/.minetest"
-    "$HOME/Code"
     "$HOME/Documents"
     "$HOME/Pictures"
-    "$HOME/Scripts"
-    "$HOME/Suckless"
 )
 
-EXCLUDES=(
-    "$HOME/.config/BraveSoftware/Brave-Browser"
-    "$HOME/.config/vesktop/sessionData"
-    "$HOME/.config/vesktop/sessionData/cache/Cache_Data"
-)
+EXCLUDES=()
 
 #------------------------------------------------------------------------------
 # arch-maintenance.sh
@@ -58,10 +60,10 @@ GIT_CHECKER="${GIT_CHECKER:-/usr/local/bin/git-checker.sh}"
 
 DAYS_DUE="${DAYS_DUE:-6}"
 
-# Use ${VAR-default} (not ${VAR:-default}) here so SERVER="" disables the
-# remote maintenance checks, as documented by maintenance-reminder.sh.
-SERVER="${SERVER-sork.local}"
-SERVER_USER="${SERVER_USER-cody}"
+# Leave SERVER empty to disable remote maintenance checks. When setting your
+# own host, keep the ${SERVER-...} form so environment overrides still work.
+SERVER="${SERVER-}"
+SERVER_USER="${SERVER_USER-}"
 SSH_TIMEOUT="${SSH_TIMEOUT:-5}"
 REMOTE_STATE_DIR="${REMOTE_STATE_DIR:-.local/state/arch-maintenance}"
 
@@ -74,7 +76,4 @@ SEARCH_DIR="${SEARCH_DIR:-$HOME}"
 IGNORE_DIRS=(
     "$HOME/.cache"
     "$HOME/.local/share"
-    "$HOME/.ohmyzsh"
-    "$HOME/Sync/CodyVault"
-    "$HOME/.minetest/minetest_game"
 )
