@@ -10,6 +10,31 @@ The scripts use `notify-send` to provide alerts, so important information is les
 
 - 'notify-send'
 
+## Configuration
+
+Shared settings live in `config.conf`. `install.sh` deploys a copy to:
+
+```
+${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts/config.conf
+```
+
+Edit that copy to customize the suite; the repo's `config.conf` is the template
+used for fresh installs. The scripts also fall back to the repo copy, so they
+work when run directly from this directory before installation.
+
+Values are resolved in this order, highest priority first:
+
+1. Environment variables (e.g. `DAYS_DUE=14 maintenance-reminder.sh`)
+2. The loaded config file
+3. Built-in defaults in `config.conf`
+
+Set `USER_SCRIPTS_CONFIG` to load a different config file. Note that the config
+is *sourced* as shell code, so only use files you trust.
+
+`maintenance-reminder.sh` remote checks can be disabled with `SERVER=""`.
+
+Uninstallation leaves the config file in place; remove it manually if desired.
+
 ## Installation
 
 sudo ./install.sh

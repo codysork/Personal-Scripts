@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # @file arch-maintenance.sh
-# @author Cody Sork <codysork@gmail.com> with help from ChatGPT
+# @author Cody Sork <codysork@gmail.com>
 # @created 2026-10-30
 # @modified 2026-11-13
 # @purpose Comprehensive Arch Linux system maintenance and diagnostics
@@ -27,16 +27,30 @@ set -uo pipefail
 # Configuration
 #------------------------------------------------------------------------------
 
+# Load the master config. Environment variables override config values.
+_user_config="${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts/config.conf"
+_repo_config="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/config.conf"
+_master_config="${USER_SCRIPTS_CONFIG:-}"
+if [[ -z "$_master_config" ]]; then
+    if [[ -r "$_user_config" ]]; then
+        _master_config="$_user_config"
+    elif [[ -r "$_repo_config" ]]; then
+        _master_config="$_repo_config"
+    fi
+fi
+if [[ -n "$_master_config" && -r "$_master_config" ]]; then
+    # shellcheck disable=SC1090
+    source "$_master_config"
+fi
+unset _user_config _repo_config _master_config
+
 SCRIPT_NAME="Arch Linux Maintenance"
 TMPDIR_SCRIPT=$(mktemp -d)
-BACKUP_DIR="$HOME/Nextcloud/Backup/Local"
-MAX_BACKUP_AGE_DAYS=30
 
 trap 'rm -rf "$TMPDIR_SCRIPT"' EXIT
 
 # Backup
 TIMESTAMP=$(date '+%Y%m%d%H%M%S')
-ARCHIVE_HEADER="sorkhackmac16-backup"
 ARCHIVE="$BACKUP_DIR/$ARCHIVE_HEADER-$TIMESTAMP.tar.gz"
 
 #------------------------------------------------------------------------------
@@ -607,10 +621,6 @@ fi
 
 section "TIMESHIFT FRESHNESS"
 
-# Configuration
-MIN_SNAPSHOTS=3
-MAX_SNAPSHOT_AGE_DAYS=30
-
 if ! has_command timeshift; then
 
     error "Timeshift is not installed."
@@ -710,8 +720,6 @@ fi
 
 section "GIT REPOSITORY STATUS"
 
-GIT_CHECKER="/usr/local/bin/git-checker.sh"
-
 if [[ ! -x "$GIT_CHECKER" ]]; then
 
     error "Git checker not found or not executable: $GIT_CHECKER"
@@ -733,14 +741,19 @@ else
 fi
 
 #------------------------------------------------------------------------------
-# 22. Disable Maintenance Reminder
+# 22. Complete Maintenance Reminder
 #------------------------------------------------------------------------------
 
-STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/arch-maintenance"
 PENDING="$STATE_DIR/pending"
+LAST_REMINDER="$STATE_DIR/last-reminder"
 
-rm -f "$PENDING"
-
+if mkdir -p "$STATE_DIR"; then
+    rm -f "$PENDING"
+    date +%s > "$LAST_REMINDER" ||
+        warning "Could not record maintenance completion time."
+else
+    warning "Could not update maintenance-reminder state."
+fi
 
 #------------------------------------------------------------------------------
 # Summary

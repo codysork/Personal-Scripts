@@ -3,36 +3,35 @@
 # @file backup.sh
 # @author Cody Sork <codysork@gmail.com> with help from ChatGPT
 # @created 2026-10-31
-# @modified 2026-11-02
+# @modified 2026-11-14
 # @purpose Back up specified directories into a compressed archive. Includes
-#          an option for auto
+#          an option for auto notification when the backup is complete.
+#          Also backs up pacman package list and installed AUR packages.
 
 set -euo pipefail
 
 #------------------------------------------------------------------------------
 # Configuration
 #------------------------------------------------------------------------------
-BACKUP_DIR="$HOME/Nextcloud/Backup/Local"
 
-BACKUP_SOURCES=(
-    "$HOME/.config"
-    "$HOME/.local/share"
-    "$HOME/.minetest"
-    "$HOME/Code"
-    "$HOME/Documents"
-    "$HOME/Pictures"
-    "$HOME/Scripts"
-    "$HOME/Suckless"
-)
-
-EXCLUDES=(
-    "$HOME/.config/BraveSoftware/Brave-Browser"
-    "$HOME/.config/vesktop/sessionData"
-    "$HOME/.config/vesktop/sessionData/cache/Cache_Data"
-)
+# Load the master config. Environment variables override config values.
+_user_config="${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts/config.conf"
+_repo_config="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/config.conf"
+_master_config="${USER_SCRIPTS_CONFIG:-}"
+if [[ -z "$_master_config" ]]; then
+    if [[ -r "$_user_config" ]]; then
+        _master_config="$_user_config"
+    elif [[ -r "$_repo_config" ]]; then
+        _master_config="$_repo_config"
+    fi
+fi
+if [[ -n "$_master_config" && -r "$_master_config" ]]; then
+    # shellcheck disable=SC1090
+    source "$_master_config"
+fi
+unset _user_config _repo_config _master_config
 
 TIMESTAMP=$(date '+%Y%m%d%H%M%S')
-ARCHIVE_HEADER="sorkhackmac16-backup"
 ARCHIVE="$BACKUP_DIR/$ARCHIVE_HEADER-$TIMESTAMP.tar.gz"
 
 #------------------------------------------------------------------------------

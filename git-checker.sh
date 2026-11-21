@@ -12,15 +12,22 @@ set -uo pipefail
 # Configuration
 #------------------------------------------------------------------------------
 
-SEARCH_DIR="$HOME"
-
-IGNORE_DIRS=(
-    "$HOME/.cache"
-    "$HOME/.local/share"
-    "$HOME/.ohmyzsh"
-    "$HOME/Sync/CodyVault"
-    "$HOME/.minetest/minetest_game"
-)
+# Load the master config. Environment variables override config values.
+_user_config="${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts/config.conf"
+_repo_config="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/config.conf"
+_master_config="${USER_SCRIPTS_CONFIG:-}"
+if [[ -z "$_master_config" ]]; then
+    if [[ -r "$_user_config" ]]; then
+        _master_config="$_user_config"
+    elif [[ -r "$_repo_config" ]]; then
+        _master_config="$_repo_config"
+    fi
+fi
+if [[ -n "$_master_config" && -r "$_master_config" ]]; then
+    # shellcheck disable=SC1090
+    source "$_master_config"
+fi
+unset _user_config _repo_config _master_config
 
 #------------------------------------------------------------------------------
 # Colors

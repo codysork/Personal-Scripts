@@ -1,39 +1,66 @@
-
-#!/bin/bash
+#!/usr/bin/env bash
 # @file maintenance-reminder.sh
 # @author Cody Sork <codysork@gmail.com> with help from ChatGPT
 # @created 2026-11-01
-# @modified 2026-11-04
-# @purpose Sends a reminder via notify-send when the computer is due for maintenance
+# @modified 2026-11-20
+# @purpose Sends a notification when the computer or server is due for
+#          maintenance.
+#
+# A reminder becomes due once the maintenance interval has elapsed since the
+# timestamp stored in "last-reminder". When due, a "pending" marker is created
+# and the reminder repeats on every run until arch-maintenance.sh finishes and
+# resets the state.
+#
+# Run:
+#   ./maintenance-reminder.sh
+#
+# Configuration can be overridden in the environment, for example:
+#   DAYS_DUE=14 SERVER= ./maintenance-reminder.sh
+
+set -uo pipefail
 
 #------------------------------------------------------------------------------
 # Configuration
 #------------------------------------------------------------------------------
 
-# Number of days until maintenance
-DAYS_DUE=6
-
-# Remote server maintenance (optional)
-SERVER="sork.local"
-SERVER_USER="cody"
+# Load the master config. Environment variables override config values.
+_user_config="${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts/config.conf"
+_repo_config="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/config.conf"
+_master_config="${USER_SCRIPTS_CONFIG:-}"
+if [[ -z "$_master_config" ]]; then
+    if [[ -r "$_user_config" ]]; then
+        _master_config="$_user_config"
+    elif [[ -r "$_repo_config" ]]; then
+        _master_config="$_repo_config"
+    fi
+fi
+if [[ -n "$_master_config" && -r "$_master_config" ]]; then
+    # shellcheck disable=SC1090
+    source "$_master_config"
+fi
+unset _user_config _repo_config _master_config
 
 #------------------------------------------------------------------------------
 # Constants
 #------------------------------------------------------------------------------
 
-NOW=$(date +%s)
-INTERVAL=$((DAYS_DUE * 24 * 60 * 60))
+NOTIFY_APP="maintenance-reminder.sh"
 
-STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/arch-maintenance"
-LAST_REMINDER_LOCAL="$STATE_DIR/last-reminder"
-PENDING_LOCAL="$STATE_DIR/pending-local"
-
-REMOTE_STATE_DIR=".local/state/arch-maintenance"
-REMOTE_LAST=".local/state/arch-maintenance/last-reminder"
-REMOTE_PENDING=".local/state/arch-maintenance/pending-remote"
+LAST_REMINDER="$STATE_DIR/last-reminder"
+PENDING="$STATE_DIR/pending"
 
 LOCAL_DUE=0
 REMOTE_DUE=0
+LOCAL_STATUS="ok"
+REMOTE_STATUS="disabled"
+
+if [[ ! "$DAYS_DUE" =~ ^[0-9]+$ ]]; then
+    printf 'Invalid DAYS_DUE "%s"; using 6.\n' "$DAYS_DUE" >&2
+    DAYS_DUE=6
+fi
+
+NOW=$(date +%s)
+INTERVAL=$((DAYS_DUE * 86400))
 
 #------------------------------------------------------------------------------
 # Functions
@@ -43,23 +70,57 @@ info() {
     printf '%s\n' "$1" >&2
 }
 
+warn() {
+    printf 'WARNING: %s\n' "$1" >&2
+}
+
 error() {
     printf 'ERROR: %s\n' "$1" >&2
     exit 1
 }
 
+has_command() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# @purpose Displays a desktop notification and logs the same message
+# @param $1 Notification urgency (low, normal, critical)
+# @param $2 Notification title
+# @param $3 Notification body
+notify() {
+
+    local urgency=$1
+    local title=$2
+    local body=$3
+
+    info "$title: $body"
+
+    if ! has_command notify-send; then
+        warn "notify-send is not installed; notification not displayed."
+        return 0
+    fi
+
+    notify-send \
+        -a "$NOTIFY_APP" \
+        -u "$urgency" \
+        "$title" \
+        "$body" ||
+        warn "notify-send failed; notification not displayed."
+}
+
+# @purpose Runs a command on the remote server using non-interactive SSH
+remote_ssh() {
+
+    ssh \
+        -o BatchMode=yes \
+        -o ConnectTimeout="$SSH_TIMEOUT" \
+        "$SERVER_USER@$SERVER" "$@"
+}
+
 # @purpose Checks whether the server is reachable
 validate_server() {
 
-    if [[ -z "$SERVER_USER" ]]; then
-        error "Server user is not set."
-    fi
-
-    if ! ssh \
-        -o BatchMode=yes \
-        -o ConnectTimeout=5 \
-        "$SERVER_USER@$SERVER" true; then
-
+    if ! remote_ssh true; then
         return 1
     fi
 
@@ -78,55 +139,92 @@ confirm_state_dir() {
     fi
 }
 
-# @purpose Initializes the local countdown
+# @purpose Initializes the local countdown on first run
 initialize_local_countdown() {
 
-    if [[ ! -f "$LAST_REMINDER_LOCAL" ]]; then
+    if [[ ! -f "$LAST_REMINDER" ]]; then
         info "Initializing local maintenance countdown."
 
-        printf '%s\n' "$NOW" > "$LAST_REMINDER_LOCAL" ||
+        printf '%s\n' "$NOW" > "$LAST_REMINDER" ||
             error "Failed to initialize local countdown."
     fi
 }
 
-# @purpose Initializes the remote countdown
-# @purpose Initializes the remote countdown if it doesn't exist
+# @purpose Initializes the remote countdown on first run
 initialize_remote_countdown() {
 
-    ssh "$SERVER_USER@$SERVER" '
-        STATE_DIR="$HOME/.local/state/arch-maintenance"
-        LAST_REMINDER="$STATE_DIR/last-reminder"
+    local output
 
-        if [[ ! -s "$LAST_REMINDER" ]]; then
-            mkdir -p "$STATE_DIR" || exit 1
-            date +%s > "$LAST_REMINDER" || exit 1
-            echo "Remote countdown initialized."
-        else
-            echo "Remote countdown already exists."
-        fi
-    ' || return 1
+    output=$(remote_ssh bash -s -- "$REMOTE_STATE_DIR" <<'REMOTE'
+state_dir="$HOME/$1"
+last_reminder="$state_dir/last-reminder"
+
+if [[ -s "$last_reminder" ]]; then
+    printf 'Remote countdown already exists.\n'
+    exit 0
+fi
+
+mkdir -p "$state_dir" || exit 1
+date +%s > "$last_reminder" || exit 1
+printf 'Remote countdown initialized.\n'
+REMOTE
+    ) || return 1
+
+    [[ -n "$output" ]] && info "$output"
+
+    return 0
 }
 
-# @param $1 Current timestamp
-# @param $2 Previous maintenance timestamp
-# @purpose Checks whether the maintenance interval has elapsed
-check_if_time_elapsed() {
+# @purpose Retrieves the remote maintenance state
+# @output PENDING, MISSING, or the last maintenance timestamp
+remote_status() {
 
-    local now=$1
+    remote_ssh bash -s -- "$REMOTE_STATE_DIR" <<'REMOTE'
+state_dir="$HOME/$1"
+pending="$state_dir/pending"
+last_reminder="$state_dir/last-reminder"
+
+if [[ -f "$pending" ]]; then
+    printf 'PENDING\n'
+elif [[ -r "$last_reminder" ]]; then
+    cat "$last_reminder"
+else
+    printf 'MISSING\n'
+fi
+REMOTE
+}
+
+# @purpose Marks remote maintenance as pending
+mark_remote_pending() {
+
+    remote_ssh bash -s -- "$REMOTE_STATE_DIR" <<'REMOTE'
+state_dir="$HOME/$1"
+
+mkdir -p "$state_dir" || exit 1
+touch "$state_dir/pending" || exit 1
+REMOTE
+}
+
+# @param $1 Label used in warning messages
+# @param $2 Previous maintenance timestamp
+# @return 0 if maintenance is due, 1 if not due, 2 if the timestamp is invalid
+# @purpose Checks whether the maintenance interval has elapsed
+check_due() {
+
+    local label=$1
     local last=$2
 
-    [[ "$last" =~ ^[0-9]+$ ]] || return 1
-
-    if (( now < last )); then
-        info "Timestamp is in the future. Skipping."
-        return 1
+    if [[ ! "$last" =~ ^[0-9]+$ ]]; then
+        warn "$label: invalid timestamp '${last:-<empty>}'."
+        return 2
     fi
 
-    if (( now - last >= INTERVAL )); then
-        return 0
+    if (( last > NOW )); then
+        warn "$label: timestamp is in the future."
+        return 2
     fi
 
-    return 1
+    (( NOW - last >= INTERVAL ))
 }
 
 # @purpose Checks local maintenance status
@@ -134,25 +232,37 @@ check_local_maintenance() {
 
     local last
 
-    if [[ -f "$PENDING_LOCAL" ]]; then
-        info "Local maintenance already pending."
+    if [[ -f "$PENDING" ]]; then
+        info "Local maintenance is already pending."
         LOCAL_DUE=1
-        return
+        return 0
     fi
 
-    read -r last < "$LAST_REMINDER_LOCAL" ||
-        error "Could not read local maintenance timestamp."
-
-    if check_if_time_elapsed "$NOW" "$last"; then
-        info "Local maintenance is due."
-
-        touch "$PENDING_LOCAL" ||
-            error "Could not mark local maintenance as pending."
-
-        LOCAL_DUE=1
-    else
-        info "Local maintenance is not due yet."
+    if ! read -r last < "$LAST_REMINDER" || [[ -z "$last" ]]; then
+        warn "Could not read local maintenance timestamp."
+        LOCAL_STATUS="error"
+        return 1
     fi
+
+    check_due "Local maintenance" "$last"
+
+    case $? in
+        0)
+            info "Local maintenance is due."
+
+            touch "$PENDING" ||
+                error "Could not mark local maintenance as pending."
+
+            LOCAL_DUE=1
+            ;;
+        1)
+            info "Local maintenance is not due yet."
+            ;;
+        *)
+            LOCAL_STATUS="error"
+            return 1
+            ;;
+    esac
 }
 
 # @purpose Checks remote maintenance status
@@ -160,68 +270,123 @@ check_remote_maintenance() {
 
     local result
 
-    result=$(ssh "$SERVER_USER@$SERVER" '
-        if [[ -f "$HOME/.local/state/arch-maintenance/pending-remote" ]]; then
-            printf "PENDING\n"
-        else
-            cat "$HOME/.local/state/arch-maintenance/last-reminder"
-        fi
-    ') || {
-        info "Could not retrieve remote maintenance status."
+    if ! result=$(remote_status); then
+        warn "Could not retrieve remote maintenance status."
+        REMOTE_STATUS="error"
         return 1
-    }
-
-    if [[ "$result" == "PENDING" ]]; then
-        info "Remote maintenance already pending."
-        REMOTE_DUE=1
-        return
     fi
 
-    if check_if_time_elapsed "$NOW" "$result"; then
-        info "Remote maintenance is due."
-
-        ssh "$SERVER_USER@$SERVER" '
-            touch "$HOME/.local/state/arch-maintenance/pending-remote"
-        ' || {
-            info "Could not mark remote maintenance as pending."
+    case "$result" in
+        PENDING)
+            info "Remote maintenance is already pending."
+            REMOTE_DUE=1
+            REMOTE_STATUS="ok"
+            return 0
+            ;;
+        MISSING)
+            warn "Remote maintenance countdown is missing."
+            REMOTE_STATUS="error"
             return 1
-        }
+            ;;
+    esac
 
-        REMOTE_DUE=1
+    REMOTE_STATUS="ok"
+
+    check_due "Remote maintenance" "$result"
+
+    case $? in
+        0)
+            info "Remote maintenance is due."
+
+            if ! mark_remote_pending; then
+                warn "Could not mark remote maintenance as pending."
+                REMOTE_STATUS="error"
+                return 1
+            fi
+
+            REMOTE_DUE=1
+            ;;
+        1)
+            info "Remote maintenance is not due yet."
+            ;;
+        *)
+            REMOTE_STATUS="error"
+            return 1
+            ;;
+    esac
+}
+
+# @purpose Sends the local maintenance notification
+notify_local() {
+
+    if (( LOCAL_DUE )); then
+        notify normal \
+            "Local Maintenance Due" \
+            "Time to run your local arch-maintenance.sh."
+    elif [[ "$LOCAL_STATUS" == "ok" ]]; then
+        notify low \
+            "Local Maintenance: Good to Go!" \
+            "No local maintenance is currently due."
     else
-        info "Remote maintenance is not due yet."
+        notify low \
+            "Local Maintenance: Unknown" \
+            "Could not determine local maintenance status."
     fi
 }
 
-# Send reminders if maintenance is pending
-# Send maintenance status notifications
-if (( LOCAL_DUE )); then
-    notify-send \
-        -a "maintenance-reminder.sh" \
-        -u normal \
-        "Local Maintenance Due" \
-        "Time to run your local arch-maintenance.sh."
-else
-    notify-send \
-        -a "maintenance-reminder.sh" \
-        -u low \
-        "Local Maintenance: Good to Go!" \
-        "No local maintenance is currently due."
-fi
+# @purpose Sends the remote maintenance notification
+notify_remote() {
 
-if [[ -n "$SERVER" ]]; then
     if (( REMOTE_DUE )); then
-        notify-send \
-            -a "maintenance-reminder.sh" \
-            -u normal \
+        notify normal \
             "Remote Maintenance Due" \
             "Time to run maintenance on $SERVER."
-    else
-        notify-send \
-            -a "maintenance-reminder.sh" \
-            -u low \
+    elif [[ "$REMOTE_STATUS" == "ok" ]]; then
+        notify low \
             "Remote Maintenance: Good to Go!" \
             "No remote maintenance is currently due."
+    else
+        notify low \
+            "Remote Maintenance: Unknown" \
+            "Could not determine maintenance status for $SERVER."
     fi
-fi
+}
 
+# @purpose Sends reminders for all configured targets
+send_notifications() {
+
+    notify_local
+
+    if [[ -n "$SERVER" ]]; then
+        notify_remote
+    fi
+}
+
+main() {
+
+    if [[ -n "$SERVER" && -z "$SERVER_USER" ]]; then
+        warn "SERVER_USER is not set; skipping remote maintenance."
+        SERVER=""
+    fi
+
+    confirm_state_dir
+    initialize_local_countdown
+    check_local_maintenance ||
+        warn "Local maintenance status could not be determined."
+
+    if [[ -n "$SERVER" ]]; then
+
+        if validate_server && initialize_remote_countdown; then
+            check_remote_maintenance ||
+                warn "Remote maintenance status could not be determined."
+        else
+            REMOTE_STATUS="error"
+            info "Server unavailable. Skipping remote maintenance check."
+        fi
+
+    fi
+
+    send_notifications
+}
+
+main "$@"
