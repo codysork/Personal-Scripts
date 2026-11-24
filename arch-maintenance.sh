@@ -27,10 +27,47 @@ set -uo pipefail
 # Configuration
 #------------------------------------------------------------------------------
 
+_master_config="${USER_SCRIPTS_CONFIG:-}"
+_script_args=()
+while (($#)); do
+    case "$1" in
+        --config-file|-c)
+            if (($# < 2)) || [[ -z "$2" ]]; then
+                printf 'Error: %s requires a config file.\n' "$1" >&2
+                exit 2
+            fi
+            _master_config=$2
+            shift 2
+            ;;
+        --config-file=*)
+            _master_config=${1#*=}
+            if [[ -z "$_master_config" ]]; then
+                printf 'Error: --config-file requires a config file.\n' >&2
+                exit 2
+            fi
+            shift
+            ;;
+        *)
+            _script_args+=("$1")
+            shift
+            ;;
+    esac
+done
+set -- "${_script_args[@]}"
+unset _script_args
+
+for arg in "$@"; do
+    case "$arg" in
+        -h|--help)
+            printf 'Usage: %s [-c|--config-file FILE] [-h|--help]\n' "$0"
+            exit 0
+            ;;
+    esac
+done
+
 # Load the master config. Environment variables override config values.
 _config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts"
 _repo_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-_master_config="${USER_SCRIPTS_CONFIG:-}"
 if [[ -z "$_master_config" ]]; then
     if [[ -r "$_config_dir/config" ]]; then
         _master_config="$_config_dir/config"
@@ -40,9 +77,14 @@ if [[ -z "$_master_config" ]]; then
         _master_config="$_repo_dir/config"
     fi
 fi
-if [[ -n "$_master_config" && -r "$_master_config" ]]; then
+if [[ -n "$_master_config" ]]; then
+    if [[ ! -r "$_master_config" ]]; then
+        printf 'Error: Config file is not readable: %s\n' "$_master_config" >&2
+        exit 1
+    fi
     # shellcheck disable=SC1090
     source "$_master_config"
+    export USER_SCRIPTS_CONFIG="$_master_config"
 fi
 unset _config_dir _repo_dir _master_config
 
@@ -777,4 +819,3 @@ printf '%bReview the warnings and cleanup candidates above.%b\n' \
     "$YELLOW" "$RESET"
 
 printf '\n'
-
