@@ -683,10 +683,11 @@ else
 
     else
 
-        # Extract snapshot dates (YYYY-MM-DD HH:MM:SS).
+        # Timeshift names snapshots YYYY-MM-DD_HH-MM-SS. The name is the third
+        # column in the listing, after the Num and marker columns.
         mapfile -t snapshots < <(
             sed -nE \
-                's/^[[:space:]]*([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}).*/\1/p' \
+                's/.*([0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}).*/\1/p' \
                 "$TMPDIR_SCRIPT/timeshift"
         )
 
@@ -713,7 +714,13 @@ else
 
         for snapshot in "${snapshots[@]}"; do
 
-            if ! snapshot_epoch=$(date -d "$snapshot" +%s 2>/dev/null); then
+            snapshot_day="${snapshot%%_*}"
+            snapshot_time="${snapshot#*_}"
+            snapshot_time="${snapshot_time//-/:}"
+
+            if ! snapshot_epoch=$(
+                date -d "$snapshot_day $snapshot_time" +%s 2>/dev/null
+            ); then
                 continue
             fi
 
