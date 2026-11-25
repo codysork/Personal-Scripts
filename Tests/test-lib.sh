@@ -23,7 +23,6 @@ CURRENT_TEST=""
 #   developer's own settings cannot change test outcomes. The scripts under
 #   test substitute defaults when these variables are unset.
 # @return 0.
-# AI-generated code (unreviewed by a human)
 clear_inherited_config() {
     unset ARCHIVE_HEADER BACKUP_DIR BACKUP_SOURCES EXCLUDES \
         DAYS_DUE SERVER SERVER_USER SSH_TIMEOUT REMOTE_STATE_DIR \
@@ -37,7 +36,6 @@ clear_inherited_config() {
 #   ssh, sudo, install, id) without touching the real system.
 # @param $1 Basename of the stub to create.
 # @return 0 when the stub was written and made executable.
-# AI-generated code (unreviewed by a human)
 write_shim() {
     local name=$1
     local path="$STUB_BIN/$name"
@@ -50,7 +48,6 @@ write_shim() {
 #   daemon or host; SSH always fails so remote checks are off by default, and
 #   sudo simply runs its arguments. Individual scenarios override a stub.
 # @return 0.
-# AI-generated code (unreviewed by a human)
 create_default_shims() {
     # Record notification attempts for assertions instead of displaying them.
     write_shim notify-send <<EOF
@@ -79,7 +76,6 @@ EOF
 #   inherited config, creates a temporary directory with the subdirectories the
 #   scripts expect (config, state, source, output), and installs default stubs.
 # @return 0.
-# AI-generated code (unreviewed by a human)
 setup_scratch() {
     clear_inherited_config
     SCRATCH=$(mktemp -d "${TMPDIR:-/tmp}/scripts-tests.XXXXXX")
@@ -92,7 +88,6 @@ setup_scratch() {
 # @description Deletes the scratch tree after a test and clears the related
 #   globals so leftover files or paths cannot affect later tests.
 # @return 0.
-# AI-generated code (unreviewed by a human)
 teardown_scratch() {
     if [[ -n "$SCRATCH" && -d "$SCRATCH" ]]; then
         rm -rf "$SCRATCH"
@@ -108,7 +103,6 @@ teardown_scratch() {
 # @param $2 Path of the script to execute.
 # @param $@ Any remaining arguments are passed to the script.
 # @return The script's exit status, also stored in SCRIPT_STATUS.
-# AI-generated code (unreviewed by a human)
 run_script_in() {
     local dir=$1
     local script=$2
@@ -134,21 +128,18 @@ run_script_in() {
 #   the normal working directory for tests that do not need a copied tree.
 # @param $@ Script path followed by its arguments (see run_script_in).
 # @return The script's exit status.
-# AI-generated code (unreviewed by a human)
 run_script() {
     run_script_in "$REPO_ROOT" "$@"
 }
 
 # @description Prints the stdout captured by the most recent script run.
 # @return 0.
-# AI-generated code (unreviewed by a human)
 stdout_text() {
     cat "$STDOUT_FILE"
 }
 
 # @description Prints the stderr captured by the most recent script run.
 # @return 0.
-# AI-generated code (unreviewed by a human)
 stderr_text() {
     cat "$STDERR_FILE"
 }
@@ -159,7 +150,6 @@ stderr_text() {
 # @param $1 Path of the config file to create.
 # @param $2 Default archive header when ARCHIVE_HEADER is unset.
 # @return 0.
-# AI-generated code (unreviewed by a human)
 write_config() {
     local path=$1
     local header=$2
@@ -176,7 +166,6 @@ EOF
 #   tests can exercise DAYS_DUE, SERVER, SERVER_USER, and SSH_TIMEOUT changes.
 # @param $1 Path of the config file to create.
 # @return 0.
-# AI-generated code (unreviewed by a human)
 write_reminder_config() {
     local path=$1
     cat > "$path" <<EOF
@@ -192,7 +181,6 @@ EOF
 # @description Replaces the pgrep stub with one that succeeds, simulating a
 #   running notification daemon for tests that pass --notify-send.
 # @return 0.
-# AI-generated code (unreviewed by a human)
 allow_notification_daemon() {
     write_shim pgrep <<'EOF'
 #!/bin/sh
@@ -204,7 +192,6 @@ EOF
 #   exercise root-only guards without actually changing users.
 # @param $1 UID value the stub should print.
 # @return 0.
-# AI-generated code (unreviewed by a human)
 set_id_shim() {
     local uid=$1
     write_shim id <<EOF
@@ -217,7 +204,6 @@ EOF
 #   $SCRATCH/bin and -o/-g ownership flags are dropped, since the harness runs
 #   unprivileged. Used by the install tests to keep the real system untouched.
 # @return 0.
-# AI-generated code (unreviewed by a human)
 allow_install_into_scratch() {
     write_shim install <<EOF
 #!/usr/bin/env bash
@@ -240,7 +226,6 @@ EOF
 #   tests run against this copy so the real checkout is never modified.
 # @param $1 Destination directory for the copy.
 # @return 0.
-# AI-generated code (unreviewed by a human)
 make_repo_copy() {
     local target=$1
     mkdir -p "$target/Style"
@@ -254,7 +239,6 @@ make_repo_copy() {
 # @param $2 Actual value.
 # @param $3 Optional message describing the assertion ("values differ" by default).
 # @return 0 on match, 1 on mismatch.
-# AI-generated code (unreviewed by a human)
 assert_eq() {
     local expected=$1
     local actual=$2
@@ -275,7 +259,6 @@ assert_eq() {
 # @param $2 Needle (substring expected to be present).
 # @param $3 Optional message ("missing expected text" by default).
 # @return 0 when found, 1 otherwise.
-# AI-generated code (unreviewed by a human)
 assert_contains() {
     local haystack=$1
     local needle=$2
@@ -294,7 +277,6 @@ assert_contains() {
 #   path printed when it does not.
 # @param $1 Path expected to exist.
 # @return 0 when present, 1 otherwise.
-# AI-generated code (unreviewed by a human)
 assert_file_present() {
     local path=$1
     if [[ -e "$path" ]]; then
@@ -310,7 +292,6 @@ assert_file_present() {
 #   unexpected path printed when it exists.
 # @param $1 Path expected to be absent.
 # @return 0 when absent, 1 otherwise.
-# AI-generated code (unreviewed by a human)
 assert_file_absent() {
     local path=$1
     if [[ ! -e "$path" ]]; then
@@ -326,7 +307,6 @@ assert_file_absent() {
 #   dry run created no archive files.
 # @param $1 Glob pattern that must have no matches.
 # @return 0 when there are no matches, 1 when any match exists.
-# AI-generated code (unreviewed by a human)
 assert_no_files_matching() {
     local pattern=$1
     local matches
