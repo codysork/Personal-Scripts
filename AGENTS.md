@@ -1,5 +1,20 @@
 # AGENTS.md
 
+> ## 🚨 REQUIRED — READ BEFORE ANY CHANGE (CODE OR TEXT)
+>
+> **Every AI-generated function or code block—including tests—MUST have a
+> comment immediately above it that says exactly: `AI-generated code
+> (unreviewed by a human)`.**
+>
+> **Every AI-generated or agent-edited block of text—including documentation
+> and this file—MUST have a comment immediately above it that says exactly:
+> `AI-generated documentation (not reviewed by a human)`.**
+>
+> Keep each marker until a human has reviewed the content; do not put markers
+> only at file level. Use `# ...` in Bash/Python/config and `<!-- ... -->`
+> in Markdown. In Python, place the code marker above the `def`/`class` and the
+> documentation marker above its docstring when both are generated.
+
 ## Clean code standards
 
 Clean code is easy for everyone on the team to understand, read, change,
@@ -98,3 +113,28 @@ Watch for:
 6. Opacity: code that is difficult to understand.
 
 Source: [Clean Code](https://gist.githubusercontent.com/wojteklu/73c6914cc446146b8b533c0988cf8d29/raw/c7a44d774fc3b09a0d5f0f58888550ba0ac694b9/clean_code.md)
+
+<!-- AI-generated documentation (not reviewed by a human) -->
+## Testing
+
+Automated tests live in `Tests/` and use a dependency-free Bash harness, so the
+repository stays script-only and needs no installed test framework.
+
+Run the whole suite, or a single test file:
+
+```sh
+bash Tests/run.sh
+bash Tests/run.sh test_config.sh
+```
+
+Conventions:
+
+1. Test files are `Tests/test_*.sh`; each defines one or more `test_*` functions.
+2. Make one observable assertion per test using the helpers in
+   `Tests/test-lib.sh`.
+3. The harness gives every test a disposable scratch directory and local shims.
+   Never point a test at the real `$HOME`, `/usr/local/bin`, a notification
+   daemon, or an SSH server.
+4. `Tests/run.sh` exits non-zero when any assertion fails.
+5. Keep the `AI-generated code (unreviewed by a human)` marker directly above
+   every new function.
