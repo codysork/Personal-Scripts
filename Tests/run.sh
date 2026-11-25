@@ -36,29 +36,79 @@ select_test_files() {
     printf '%s\n' "${files[@]}"
 }
 
-# @description Loads the selected suites and runs each test_* function. Every
-#   test gets a fresh scratch tree so state cannot leak between tests. A test
-#   passes only when it exits 0 and leaves FAIL_COUNT unchanged; the final line
-#   prints totals and the overall status mirrors FAIL_COUNT for CI use.
-# @param $@ Arguments forwarded to select_test_files (optional file filter).
-# @return 0 when no assertion failed, 1 otherwise.
-# AI-generated code (unreviewed by a human)
-main() {
-    local file name status before
-    local -a names=()
-
+# @description Sources every selected suite into the current shell so their
+#   test_* definitions become available to the runner. Empty paths are skipped
+#   because no suite can be loaded from them.
+# @param $1 Optional basename filter forwarded to select_test_files.
+# @return 0.
+load_test_suites() {
+    local file
     while IFS= read -r file; do
         [[ -n "$file" ]] || continue
         # Sourcing registers each suite's test_* definitions in this shell.
         # shellcheck disable=SC1090
         source "$file"
     done < <(select_test_files "${1:-}")
+}
 
-    # declare -F lists loaded functions; keeping only test_ names gives the
-    # runner its test set without a separate registry to maintain.
+# @description Lists loaded test_* functions in sorted order so the runner
+#   discovers its test set without a separate registry to maintain.
+# @return 0; one function name per line on stdout.
+list_test_names() {
+    declare -F | awk '{print $3}' | grep '^test_' | sort
+}
+
+# @description Prints a test's outcome from its exit status and the assertion
+#   counter captured before it ran. A nonzero exit is not reported as a failure
+#   when an assertion already recorded the problem.
+# @param $1 Name of the test.
+# @param $2 Exit status returned by the test function.
+# @param $3 FAIL_COUNT value before the test ran.
+# @return 0; PASS or FAIL text is printed to stdout.
+report_test_outcome() {
+    local name=$1
+    local status=$2
+    local before=$3
+    if (( status == 0 && FAIL_COUNT == before )); then
+        printf 'PASS %s\n' "$name"
+    elif (( FAIL_COUNT == before )); then
+        printf 'FAIL %s (test returned %d)\n' "$name" "$status"
+    fi
+}
+
+# @description Runs one test in a fresh scratch tree and reports its outcome.
+#   The assertion counter is snapshotted first so a test that returns 0 after a
+#   failed assertion is still reported as a failure.
+# @param $1 Name of the test function to call.
+# @return 0; the outcome is printed by report_test_outcome.
+run_single_test() {
+    local name=$1
+    local before=$FAIL_COUNT
+    local status
+
+    CURRENT_TEST=$name
+    setup_scratch
+    "$name"
+    status=$?
+    teardown_scratch
+    report_test_outcome "$name" "$status" "$before"
+}
+
+# @description Loads the selected suites and runs each test_* function. Every
+#   test gets a fresh scratch tree so state cannot leak between tests. A test
+#   passes only when it exits 0 and leaves FAIL_COUNT unchanged; the final line
+#   prints totals and the overall status mirrors FAIL_COUNT for CI use.
+# @param $@ Arguments forwarded to select_test_files (optional file filter).
+# @return 0 when no assertion failed, 1 otherwise.
+main() {
+    local name
+    local -a names=()
+
+    load_test_suites "${1:-}"
+
     while read -r name; do
         names+=("$name")
-    done < <(declare -F | awk '{print $3}' | grep '^test_' | sort)
+    done < <(list_test_names)
 
     if (( ${#names[@]} == 0 )); then
         printf 'No tests found.\n' >&2
@@ -66,19 +116,7 @@ main() {
     fi
 
     for name in "${names[@]}"; do
-        CURRENT_TEST=$name
-        # Snapshot the counter so an assertion failure is reported even if the
-        # test function itself returns 0.
-        before=$FAIL_COUNT
-        setup_scratch
-        "$name"
-        status=$?
-        teardown_scratch
-        if (( status == 0 && FAIL_COUNT == before )); then
-            printf 'PASS %s\n' "$name"
-        elif (( FAIL_COUNT == before )); then
-            printf 'FAIL %s (test returned %d)\n' "$name" "$status"
-        fi
+        run_single_test "$name"
     done
 
     printf '\n%d passed, %d failed\n' "$PASS_COUNT" "$FAIL_COUNT"

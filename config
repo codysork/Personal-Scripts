@@ -77,6 +77,7 @@ IGNORE_DIRS=(
     "$HOME/.local/share"
     "$HOME/.oh-my-zsh"
     "$HOME/.zim"
+    "$HOME/Code/archive"
     "$HOME/Sync/CodyVault"
     "$HOME/.minetest/games/minetest_game"
 )
