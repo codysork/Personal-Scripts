@@ -4,7 +4,6 @@
 set -uo pipefail
 
 TESTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=test-lib.sh
 source "$TESTS_DIR/test-lib.sh"
 
 # @description Reports whether a discovered test file belongs in the selection:
