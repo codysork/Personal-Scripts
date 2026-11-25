@@ -114,14 +114,6 @@ Watch for:
 
 Source: [Clean Code](https://gist.githubusercontent.com/wojteklu/73c6914cc446146b8b533c0988cf8d29/raw/c7a44d774fc3b09a0d5f0f58888550ba0ac694b9/clean_code.md)
 
-<!-- AI-generated documentation (not reviewed by a human) -->
-## Human-readable code
-
-Working code is not enough. Agents must make code easy for a human to read,
-follow, and change: choose names that state intent, keep control flow simple,
-and explain *why* where the code alone does not. Treat readability as part of
-finishing the task, not as optional polish to add only if asked.
-
 ## Documentation conventions
 
 Document functions and non-obvious blocks with tagged `#` comment blocks
