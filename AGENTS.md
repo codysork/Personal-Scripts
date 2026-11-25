@@ -120,7 +120,6 @@ Document functions and non-obvious blocks with tagged `#` comment blocks
 (docblocks). These conventions apply to every shell script in the repository,
 including the files under `Tests/`.
 
-<!-- AI-generated documentation (not reviewed by a human) -->
 ### File headers
 
 Every script starts with its shebang followed by a tagged header comment that
