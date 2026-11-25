@@ -6,11 +6,11 @@
 # @return Status of the final assertion: 0 on pass, 1 on failure.
 # AI-generated code (unreviewed by a human)
 test_config_env_overrides_file() {
-    write_config "$SCRATCH/cfg-A" A
-    ARCHIVE_HEADER=envhdr \
-        run_script backup.sh --dry-run -c "$SCRATCH/cfg-A"
+    write_config "$SCRATCH/env-config" default-header
+    ARCHIVE_HEADER=expected-env-header \
+        run_script backup.sh --dry-run -c "$SCRATCH/env-config"
     assert_contains "$(stdout_text)" \
-        "Backup would be created: $SCRATCH/out/envhdr-"
+        "Backup would be created: $SCRATCH/out/expected-env-header-"
 }
 
 # @description Verifies that the -c path wins over USER_SCRIPTS_CONFIG when
@@ -18,12 +18,12 @@ test_config_env_overrides_file() {
 # @return Status of the final assertion: 0 on pass, 1 on failure.
 # AI-generated code (unreviewed by a human)
 test_config_cli_beats_env_config_path() {
-    write_config "$SCRATCH/cfg-A" A
-    write_config "$SCRATCH/cfg-B" B
-    USER_SCRIPTS_CONFIG="$SCRATCH/cfg-A" \
-        run_script backup.sh --dry-run -c "$SCRATCH/cfg-B"
+    write_config "$SCRATCH/env-config" default-header
+    write_config "$SCRATCH/cli-config" expected-cli-header
+    USER_SCRIPTS_CONFIG="$SCRATCH/env-config" \
+        run_script backup.sh --dry-run -c "$SCRATCH/cli-config"
     assert_contains "$(stdout_text)" \
-        "Backup would be created: $SCRATCH/out/B-"
+        "Backup would be created: $SCRATCH/out/expected-cli-header-"
 }
 
 # @description Verifies the long --config-file form when the path is passed as
@@ -31,10 +31,10 @@ test_config_cli_beats_env_config_path() {
 # @return Status of the final assertion: 0 on pass, 1 on failure.
 # AI-generated code (unreviewed by a human)
 test_config_long_option_with_separate_value() {
-    write_config "$SCRATCH/cfg-B" B
-    run_script backup.sh --dry-run --config-file "$SCRATCH/cfg-B"
+    write_config "$SCRATCH/cli-config" expected-cli-header
+    run_script backup.sh --dry-run --config-file "$SCRATCH/cli-config"
     assert_contains "$(stdout_text)" \
-        "Backup would be created: $SCRATCH/out/B-"
+        "Backup would be created: $SCRATCH/out/expected-cli-header-"
 }
 
 # @description Verifies the --config-file=PATH form so both documented long
@@ -42,10 +42,10 @@ test_config_long_option_with_separate_value() {
 # @return Status of the final assertion: 0 on pass, 1 on failure.
 # AI-generated code (unreviewed by a human)
 test_config_long_option_with_equals() {
-    write_config "$SCRATCH/cfg-B" B
-    run_script backup.sh --dry-run "--config-file=$SCRATCH/cfg-B"
+    write_config "$SCRATCH/cli-config" expected-cli-header
+    run_script backup.sh --dry-run "--config-file=$SCRATCH/cli-config"
     assert_contains "$(stdout_text)" \
-        "Backup would be created: $SCRATCH/out/B-"
+        "Backup would be created: $SCRATCH/out/expected-cli-header-"
 }
 
 # @description Verifies that an installed config in XDG_CONFIG_HOME is chosen
@@ -54,11 +54,11 @@ test_config_long_option_with_equals() {
 # AI-generated code (unreviewed by a human)
 test_config_installed_beats_legacy() {
     mkdir -p "$SCRATCH/xdg/user-scripts"
-    write_config "$SCRATCH/xdg/user-scripts/config" installed
-    write_config "$SCRATCH/xdg/user-scripts/config.conf" legacy
+    write_config "$SCRATCH/xdg/user-scripts/config" expected-installed-header
+    write_config "$SCRATCH/xdg/user-scripts/config.conf" legacy-header
     run_script backup.sh --dry-run
     assert_contains "$(stdout_text)" \
-        "Backup would be created: $SCRATCH/out/installed-"
+        "Backup would be created: $SCRATCH/out/expected-installed-header-"
 }
 
 # @description Verifies that a legacy config.conf is still loaded when no
@@ -67,27 +67,25 @@ test_config_installed_beats_legacy() {
 # AI-generated code (unreviewed by a human)
 test_config_legacy_fallback() {
     mkdir -p "$SCRATCH/xdg/user-scripts"
-    write_config "$SCRATCH/xdg/user-scripts/config.conf" legacy
+    write_config "$SCRATCH/xdg/user-scripts/config.conf" expected-legacy-header
     run_script backup.sh --dry-run
     assert_contains "$(stdout_text)" \
-        "Backup would be created: $SCRATCH/out/legacy-"
+        "Backup would be created: $SCRATCH/out/expected-legacy-header-"
 }
 
 # @description Verifies the last-resort fallback to the repository's config
-#   template when no installed or legacy config is readable.
+#   template when no installed or legacy config is readable. A scratch repo copy
+#   holds a controlled config so the asserted header is not a personal value.
 # @return Status of the final assertion: 0 on pass, 1 on failure.
 # AI-generated code (unreviewed by a human)
 test_config_repo_template_fallback() {
-    local dir
-    # These are the template's BACKUP_SOURCES; the script aborts unless each
-    # source exists, so seed the expected home layout before the dry run.
-    for dir in .config .local/share .minetest Code Documents \
-        Pictures Scripts Suckless; do
-        mkdir -p "$SCRATCH/home/$dir"
-    done
-    run_script backup.sh --dry-run
+    local repo="$SCRATCH/repo-copy"
+    make_repo_copy "$repo"
+    # Replace the copied template so every expected value comes from this test.
+    write_config "$repo/config" expected-template-header
+    run_script_in "$repo" "$repo/backup.sh" --dry-run
     assert_contains "$(stdout_text)" \
-        "Backup would be created: $SCRATCH/home/Nextcloud/Backup/Local/sorkhackmac16-backup-"
+        "Backup would be created: $SCRATCH/out/expected-template-header-"
 }
 
 # @description Verifies that naming an unreadable config file makes backup.sh
@@ -95,7 +93,7 @@ test_config_repo_template_fallback() {
 # @return Status of the final assertion: 0 on pass, 1 on failure.
 # AI-generated code (unreviewed by a human)
 test_config_unreadable_file_exits_one() {
-    run_script backup.sh --dry-run -c "$SCRATCH/missing"
+    run_script backup.sh --dry-run -c "$SCRATCH/missing-config"
     assert_eq 1 "$SCRIPT_STATUS" "unreadable config exit status"
 }
 
@@ -104,9 +102,9 @@ test_config_unreadable_file_exits_one() {
 # @return Status of the final assertion: 0 on pass, 1 on failure.
 # AI-generated code (unreviewed by a human)
 test_config_unreadable_file_reports_error() {
-    run_script backup.sh --dry-run -c "$SCRATCH/missing"
+    run_script backup.sh --dry-run -c "$SCRATCH/unexpected-missing-config"
     assert_contains "$(stderr_text)" \
-        "Error: Config file is not readable: $SCRATCH/missing"
+        "Error: Config file is not readable: $SCRATCH/unexpected-missing-config"
 }
 
 # @description Verifies that -c without a value is a usage error (status 2),
@@ -134,10 +132,10 @@ test_config_missing_long_value_reports_error() {
 # @return Status of the final assertion: 0 on pass, 1 on failure.
 # AI-generated code (unreviewed by a human)
 test_config_options_after_config_file() {
-    write_config "$SCRATCH/cfg-B" B
-    run_script backup.sh -c "$SCRATCH/cfg-B" --dry-run
+    write_config "$SCRATCH/cli-config" expected-cli-header
+    run_script backup.sh -c "$SCRATCH/cli-config" --dry-run
     assert_contains "$(stdout_text)" \
-        "Backup would be created: $SCRATCH/out/B-"
+        "Backup would be created: $SCRATCH/out/expected-cli-header-"
 }
 
 # @description Verifies that maintenance-reminder.sh shares the same config
@@ -145,7 +143,7 @@ test_config_options_after_config_file() {
 # @return Status of the final assertion: 0 on pass, 1 on failure.
 # AI-generated code (unreviewed by a human)
 test_config_shared_by_reminder() {
-    run_script maintenance-reminder.sh -c "$SCRATCH/missing"
+    run_script maintenance-reminder.sh -c "$SCRATCH/missing-config"
     assert_contains "$(stderr_text)" \
         "Error: Config file is not readable:"
 }
@@ -155,7 +153,7 @@ test_config_shared_by_reminder() {
 # @return Status of the final assertion: 0 on pass, 1 on failure.
 # AI-generated code (unreviewed by a human)
 test_config_shared_by_git_checker() {
-    run_script git-checker.sh -c "$SCRATCH/missing"
+    run_script git-checker.sh -c "$SCRATCH/missing-config"
     assert_contains "$(stderr_text)" \
         "Error: Config file is not readable:"
 }
@@ -165,7 +163,7 @@ test_config_shared_by_git_checker() {
 # @return Status of the final assertion: 0 on pass, 1 on failure.
 # AI-generated code (unreviewed by a human)
 test_config_shared_by_arch_maintenance() {
-    run_script arch-maintenance.sh -c "$SCRATCH/missing"
+    run_script arch-maintenance.sh -c "$SCRATCH/missing-config"
     assert_contains "$(stderr_text)" \
         "Error: Config file is not readable:"
 }
