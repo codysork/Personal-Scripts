@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Install tests. The install and id shims keep every write inside the scratch
-# tree; -o/-g ownership flags are dropped because the harness runs unprivileged.
+# @description Install tests. The install and id shims keep every write inside
+#              the scratch tree; -o/-g ownership flags are dropped because the
+#              harness runs unprivileged.
 
 # @description Verifies that install.sh refuses to run for a non-root user,
 #   using the id stub to simulate UID 1000.
 # @return Status of the final assertion: 0 on pass, 1 on failure.
-# AI-generated code (unreviewed by a human)
 test_install_non_root_refusal() {
     local repo="$SCRATCH/repo-copy"
     make_repo_copy "$repo"
@@ -14,28 +14,57 @@ test_install_non_root_refusal() {
     assert_contains "$(stdout_text)" "This script must be run as root."
 }
 
-# @description Verifies that install deploys the four runnable scripts while
-#   skipping install.sh and uninstall.sh. The install shim redirects the target
-#   directory into the scratch tree so the real /usr/local/bin is untouched.
+# @description Lists the scripts install.sh should deploy from a repo copy.
+#   Only install.sh and uninstall.sh are excluded; every other script in the
+#   copy is expected to be placed in /usr/local/bin by a successful install.
+# @param $1 Path to the repo copy to inspect.
+# @return 0; script names are printed one per line.
+expected_installed_scripts() {
+    local repo=$1
+    local script
+    (
+        cd "$repo" || exit 99
+        for script in *.sh; do
+            case "$script" in
+                install.sh|uninstall.sh) continue ;;
+            esac
+            printf '%s\n' "$script"
+        done
+    ) | sort
+}
+
+# @description Lists the scripts install.sh actually placed in the shimmed
+#   target directory for the current test.
+# @return 0; script names are printed one per line.
+installed_scripts() {
+    (cd "$SCRATCH/bin" && printf '%s\n' *.sh) | sort
+}
+
+# @description Verifies that install deploys every runnable script in a
+#   synthetic repo while skipping install.sh and uninstall.sh. The fixture owns
+#   its scripts and config, so the result does not depend on the real repo.
 # @return Status of the final assertion: 0 on pass, 1 on failure.
 # AI-generated code (unreviewed by a human)
 test_install_places_only_runnable_scripts() {
     local repo="$SCRATCH/repo-copy"
-    local installed
-    make_repo_copy "$repo"
+    mkdir -p "$repo"
+    # Only install.sh is the code under test; the rest are inert fixtures.
+    cp "$REPO_ROOT/install.sh" "$repo/install.sh"
+    printf '#!/bin/sh\n' > "$repo/uninstall.sh"
+    printf '#!/bin/sh\n' > "$repo/first-tool.sh"
+    printf '#!/bin/sh\n' > "$repo/second-tool.sh"
+    printf 'ARCHIVE_HEADER=fixture\n' > "$repo/config"
     set_id_shim 0
     allow_install_into_scratch
     run_script_in "$repo" "$repo/install.sh"
-    installed=$(cd "$SCRATCH/bin" && printf '%s\n' *.sh | tr '\n' ' ')
     assert_eq \
-        "arch-maintenance.sh backup.sh git-checker.sh maintenance-reminder.sh " \
-        "$installed" "installed script names"
+        "$(expected_installed_scripts "$repo")" \
+        "$(installed_scripts)" "installed script names"
 }
 
 # @description Verifies that a fresh install places the config template in the
 #   user's XDG config directory without needing an existing config.
 # @return Status of the final assertion: 0 on pass, 1 on failure.
-# AI-generated code (unreviewed by a human)
 test_install_deploys_config_template() {
     local repo="$SCRATCH/repo-copy"
     make_repo_copy "$repo"
