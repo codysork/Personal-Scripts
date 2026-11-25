@@ -114,7 +114,53 @@ Watch for:
 
 Source: [Clean Code](https://gist.githubusercontent.com/wojteklu/73c6914cc446146b8b533c0988cf8d29/raw/c7a44d774fc3b09a0d5f0f58888550ba0ac694b9/clean_code.md)
 
-<!-- AI-generated documentation (not reviewed by a human) -->
+## Documentation conventions
+
+Document functions and non-obvious blocks with tagged `#` comment blocks
+(docblocks). These conventions apply to every shell script in the repository,
+including the files under `Tests/`.
+
+### Docblock format
+
+Place the docblock immediately above the required
+`AI-generated code (unreviewed by a human)` marker, so that marker stays on the
+line directly above the function it covers.
+
+```sh
+# @description What the function does and why it exists.
+# @param $1 What the first argument is.
+# @return 0 on success; 1 on failure.
+# AI-generated code (unreviewed by a human)
+function_name() {
+```
+
+Use these tags:
+
+1. `@description` — one or two sentences about intent, not a restatement of the
+   function name. Say why the behavior matters when that is not obvious.
+2. `@param $N` — one line per argument, including `$@` for forwarded arguments.
+   Omit the tag when the function takes none.
+3. `@return` — the exit status or value callers can rely on. For a `test_*`
+   function, note that the status comes from its final assertion.
+4. `@file`, `@author`, `@created`, `@modified` — header tags for script files.
+   Preserve the existing header style when adding a script.
+
+Some top-level scripts use `@purpose` with the same meaning as `@description`.
+Treat the tags as equivalent and do not mix them within one file.
+
+### Explaining blocks of code
+
+Use short `#` comments inside a function to explain *why* a non-obvious block
+exists — for example, generated shim contents, environment overrides, scratch
+isolation, or timestamp arithmetic. Prefer a docblock when the whole function
+is the subject. Do not narrate each line, and do not add closing-brace comments.
+
+### Test documentation
+
+Give every `test_*` function a `@description` naming the behavior under test
+and the observable assertion, plus a `@return` identifying the assertion as the
+source of its status.
+
 ## Testing
 
 Automated tests live in `Tests/` and use a dependency-free Bash harness, so the

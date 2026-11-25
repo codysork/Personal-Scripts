@@ -6,16 +6,23 @@
 TESTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$TESTS_DIR/.." && pwd)"
 
+# Scratch tree, shim directory, and captured output paths. Recreated by
+# setup_scratch before each test.
 SCRATCH=""
 STUB_BIN=""
 STDOUT_FILE=""
 STDERR_FILE=""
 SCRIPT_STATUS=0
 
+# Harness bookkeeping: assertion totals and the currently executing test.
 PASS_COUNT=0
 FAIL_COUNT=0
 CURRENT_TEST=""
 
+# @description Removes config variables from the harness environment so a
+#   developer's own settings cannot change test outcomes. The scripts under
+#   test substitute defaults when these variables are unset.
+# @return 0.
 # AI-generated code (unreviewed by a human)
 clear_inherited_config() {
     unset ARCHIVE_HEADER BACKUP_DIR BACKUP_SOURCES EXCLUDES \
@@ -25,29 +32,53 @@ clear_inherited_config() {
         USER_SCRIPTS_CONFIG
 }
 
+# @description Creates an executable stub named from stdin under $STUB_BIN.
+#   Stubs are prepended to PATH so tests replace external tools (notify-send,
+#   ssh, sudo, install, id) without touching the real system.
+# @param $1 Basename of the stub to create.
+# @return 0 when the stub was written and made executable.
+# AI-generated code (unreviewed by a human)
+write_shim() {
+    local name=$1
+    local path="$STUB_BIN/$name"
+    cat > "$path"
+    chmod +x "$path"
+}
+
+# @description Installs the baseline stubs used by every test. Notifications
+#   and SSH calls are logged into the scratch tree instead of reaching a real
+#   daemon or host; SSH always fails so remote checks are off by default, and
+#   sudo simply runs its arguments. Individual scenarios override a stub.
+# @return 0.
 # AI-generated code (unreviewed by a human)
 create_default_shims() {
-    cat > "$STUB_BIN/notify-send" <<EOF
+    # Record notification attempts for assertions instead of displaying them.
+    write_shim notify-send <<EOF
 #!/bin/sh
 printf '%s\n' "\$*" >> "$SCRATCH/notify.log"
 EOF
-    cat > "$STUB_BIN/ssh" <<EOF
+    # Log remote calls and fail them, keeping tests offline and deterministic.
+    write_shim ssh <<EOF
 #!/bin/sh
 printf '%s\n' "\$*" >> "$SCRATCH/ssh.log"
 exit 1
 EOF
-    cat > "$STUB_BIN/pgrep" <<'EOF'
+    # No notification daemon is running until a test overrides this stub.
+    write_shim pgrep <<'EOF'
 #!/bin/sh
 exit 1
 EOF
-    cat > "$STUB_BIN/sudo" <<'EOF'
+    # Pass through unchanged; the install shim handles path redirection.
+    write_shim sudo <<'EOF'
 #!/bin/sh
 exec "$@"
 EOF
-    chmod +x "$STUB_BIN/notify-send" "$STUB_BIN/ssh" \
-        "$STUB_BIN/pgrep" "$STUB_BIN/sudo"
 }
 
+# @description Prepares a fresh isolated environment before each test: clears
+#   inherited config, creates a temporary directory with the subdirectories the
+#   scripts expect (config, state, source, output), and installs default stubs.
+# @return 0.
 # AI-generated code (unreviewed by a human)
 setup_scratch() {
     clear_inherited_config
@@ -58,6 +89,9 @@ setup_scratch() {
     create_default_shims
 }
 
+# @description Deletes the scratch tree after a test and clears the related
+#   globals so leftover files or paths cannot affect later tests.
+# @return 0.
 # AI-generated code (unreviewed by a human)
 teardown_scratch() {
     if [[ -n "$SCRATCH" && -d "$SCRATCH" ]]; then
@@ -67,6 +101,13 @@ teardown_scratch() {
     STUB_BIN=""
 }
 
+# @description Runs a script from a chosen working directory with a sandboxed
+#   HOME, XDG config/state, and PATH that prefers the local stubs. Output is
+#   captured to files so tests can assert on stdout and stderr separately.
+# @param $1 Directory to run from (repo root or a scratch copy).
+# @param $2 Path of the script to execute.
+# @param $@ Any remaining arguments are passed to the script.
+# @return The script's exit status, also stored in SCRIPT_STATUS.
 # AI-generated code (unreviewed by a human)
 run_script_in() {
     local dir=$1
@@ -74,6 +115,8 @@ run_script_in() {
     shift 2
     STDOUT_FILE="$SCRATCH/stdout"
     STDERR_FILE="$SCRATCH/stderr"
+    # The subshell keeps directory and environment overrides local to the
+    # script under test rather than changing the harness itself.
     (
         cd "$dir" || exit 99
         HOME="$SCRATCH/home" \
@@ -87,21 +130,35 @@ run_script_in() {
     return "$SCRIPT_STATUS"
 }
 
+# @description Convenience wrapper that runs a script from the repository root,
+#   the normal working directory for tests that do not need a copied tree.
+# @param $@ Script path followed by its arguments (see run_script_in).
+# @return The script's exit status.
 # AI-generated code (unreviewed by a human)
 run_script() {
     run_script_in "$REPO_ROOT" "$@"
 }
 
+# @description Prints the stdout captured by the most recent script run.
+# @return 0.
 # AI-generated code (unreviewed by a human)
 stdout_text() {
     cat "$STDOUT_FILE"
 }
 
+# @description Prints the stderr captured by the most recent script run.
+# @return 0.
 # AI-generated code (unreviewed by a human)
 stderr_text() {
     cat "$STDERR_FILE"
 }
 
+# @description Writes a backup config that points into the scratch tree. The
+#   archive header is written with ${ARCHIVE_HEADER:-$header} so a test can
+#   override it through the environment and verify precedence rules.
+# @param $1 Path of the config file to create.
+# @param $2 Default archive header when ARCHIVE_HEADER is unset.
+# @return 0.
 # AI-generated code (unreviewed by a human)
 write_config() {
     local path=$1
@@ -114,6 +171,11 @@ ARCHIVE_HEADER="\${ARCHIVE_HEADER:-$header}"
 EOF
 }
 
+# @description Writes a maintenance-reminder config pointed at scratch state.
+#   Values that scripts allow to be overridden expand from the environment so
+#   tests can exercise DAYS_DUE, SERVER, SERVER_USER, and SSH_TIMEOUT changes.
+# @param $1 Path of the config file to create.
+# @return 0.
 # AI-generated code (unreviewed by a human)
 write_reminder_config() {
     local path=$1
@@ -127,28 +189,37 @@ REMOTE_STATE_DIR=".local/state/arch-maintenance"
 EOF
 }
 
+# @description Replaces the pgrep stub with one that succeeds, simulating a
+#   running notification daemon for tests that pass --notify-send.
+# @return 0.
 # AI-generated code (unreviewed by a human)
 allow_notification_daemon() {
-    cat > "$STUB_BIN/pgrep" <<'EOF'
+    write_shim pgrep <<'EOF'
 #!/bin/sh
 exit 0
 EOF
-    chmod +x "$STUB_BIN/pgrep"
 }
 
+# @description Installs an id stub that reports a chosen UID, letting tests
+#   exercise root-only guards without actually changing users.
+# @param $1 UID value the stub should print.
+# @return 0.
 # AI-generated code (unreviewed by a human)
 set_id_shim() {
     local uid=$1
-    cat > "$STUB_BIN/id" <<EOF
+    write_shim id <<EOF
 #!/bin/sh
 echo "$uid"
 EOF
-    chmod +x "$STUB_BIN/id"
 }
 
+# @description Replaces the install stub so writes to /usr/local/bin land in
+#   $SCRATCH/bin and -o/-g ownership flags are dropped, since the harness runs
+#   unprivileged. Used by the install tests to keep the real system untouched.
+# @return 0.
 # AI-generated code (unreviewed by a human)
 allow_install_into_scratch() {
-    cat > "$STUB_BIN/install" <<EOF
+    write_shim install <<EOF
 #!/usr/bin/env bash
 args=()
 while ((\$#)); do
@@ -162,9 +233,13 @@ while ((\$#)); do
 done
 exec /usr/bin/install "\${args[@]}"
 EOF
-    chmod +x "$STUB_BIN/install"
 }
 
+# @description Copies the scripts and config into a throwaway repo under the
+#   scratch tree and adds a Style/dummy.css sentinel. Install and uninstall
+#   tests run against this copy so the real checkout is never modified.
+# @param $1 Destination directory for the copy.
+# @return 0.
 # AI-generated code (unreviewed by a human)
 make_repo_copy() {
     local target=$1
@@ -173,6 +248,12 @@ make_repo_copy() {
     printf 'sentinel\n' > "$target/Style/dummy.css"
 }
 
+# @description Compares two values and records exactly one pass or failure,
+#   printing a quoted expected/actual diagnostic on mismatch.
+# @param $1 Expected value.
+# @param $2 Actual value.
+# @param $3 Optional message describing the assertion ("values differ" by default).
+# @return 0 on match, 1 on mismatch.
 # AI-generated code (unreviewed by a human)
 assert_eq() {
     local expected=$1
@@ -188,6 +269,12 @@ assert_eq() {
     return 1
 }
 
+# @description Checks that a string contains a substring and records one pass
+#   or failure, showing the full text when the substring is missing.
+# @param $1 Haystack (text to search).
+# @param $2 Needle (substring expected to be present).
+# @param $3 Optional message ("missing expected text" by default).
+# @return 0 when found, 1 otherwise.
 # AI-generated code (unreviewed by a human)
 assert_contains() {
     local haystack=$1
@@ -203,6 +290,10 @@ assert_contains() {
     return 1
 }
 
+# @description Records a pass when a path exists and a failure with the missing
+#   path printed when it does not.
+# @param $1 Path expected to exist.
+# @return 0 when present, 1 otherwise.
 # AI-generated code (unreviewed by a human)
 assert_file_present() {
     local path=$1
@@ -215,6 +306,10 @@ assert_file_present() {
     return 1
 }
 
+# @description Records a pass when a path is absent and a failure with the
+#   unexpected path printed when it exists.
+# @param $1 Path expected to be absent.
+# @return 0 when absent, 1 otherwise.
 # AI-generated code (unreviewed by a human)
 assert_file_absent() {
     local path=$1
@@ -227,6 +322,10 @@ assert_file_absent() {
     return 1
 }
 
+# @description Records a pass when a glob matches nothing. Used to prove that a
+#   dry run created no archive files.
+# @param $1 Glob pattern that must have no matches.
+# @return 0 when there are no matches, 1 when any match exists.
 # AI-generated code (unreviewed by a human)
 assert_no_files_matching() {
     local pattern=$1
