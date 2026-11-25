@@ -139,6 +139,10 @@ Align wrapped lines under the text of their tag: continuations of
 start under the note text. Top-level scripts may also carry `@file`, `@author`,
 `@created`, and `@modified`; keep that style when editing them.
 
+<!-- AI-generated documentation (not reviewed by a human) -->
+When a file has a `@modified` tag, update it to the current date in `YYYY-MM-DD`
+form whenever you change that file.
+
 ### Docblock format
 
 Place the docblock immediately above the required
