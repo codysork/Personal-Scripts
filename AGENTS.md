@@ -120,6 +120,26 @@ Document functions and non-obvious blocks with tagged `#` comment blocks
 (docblocks). These conventions apply to every shell script in the repository,
 including the files under `Tests/`.
 
+<!-- AI-generated documentation (not reviewed by a human) -->
+### File headers
+
+Every script starts with its shebang followed by a tagged header comment that
+describes the whole file. Use `@description` for its purpose and, when useful,
+`@note` for terminology or context that applies throughout the file:
+
+```sh
+#!/usr/bin/env bash
+# @description Config-resolution tests: environment, CLI, and
+#              installed/legacy/repo fallback.
+# @note  A "header" is ARCHIVE_HEADER: the prefix of the archive filename
+#        before the timestamp and .tar.gz suffix.
+```
+
+Align wrapped lines under the text of their tag: continuations of
+`@description` start under the description text, and continuations of `@note`
+start under the note text. Top-level scripts may also carry `@file`, `@author`,
+`@created`, and `@modified`; keep that style when editing them.
+
 ### Docblock format
 
 Place the docblock immediately above the required
