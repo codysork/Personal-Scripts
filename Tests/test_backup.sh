@@ -3,7 +3,6 @@
 
 # @description Verifies that --help is a successful exit, not an error path.
 # @return Status of the final assertion: 0 on pass, 1 on failure.
-# AI-generated code (unreviewed by a human)
 test_backup_help_exits_zero() {
     run_script backup.sh --help
     assert_eq 0 "$SCRIPT_STATUS" "help exit status"
@@ -12,7 +11,6 @@ test_backup_help_exits_zero() {
 # @description Verifies that --help prints the usage line so users can discover
 #   the available options.
 # @return Status of the final assertion: 0 on pass, 1 on failure.
-# AI-generated code (unreviewed by a human)
 test_backup_help_prints_usage() {
     run_script backup.sh --help
     assert_contains "$(stdout_text)" "Usage:"
@@ -21,7 +19,6 @@ test_backup_help_prints_usage() {
 # @description Verifies that an unknown option is rejected with status 1 rather
 #   than being ignored.
 # @return Status of the final assertion: 0 on pass, 1 on failure.
-# AI-generated code (unreviewed by a human)
 test_backup_invalid_option_exits_one() {
     run_script backup.sh --bogus
     assert_eq 1 "$SCRIPT_STATUS" "invalid option exit status"
@@ -30,7 +27,6 @@ test_backup_invalid_option_exits_one() {
 # @description Verifies that a dry run announces the archive it would create,
 #   using "would be created" wording to distinguish it from a real backup.
 # @return Status of the final assertion: 0 on pass, 1 on failure.
-# AI-generated code (unreviewed by a human)
 test_backup_dry_run_announces_archive() {
     write_config "$SCRATCH/cfg-A" A
     run_script backup.sh --dry-run -c "$SCRATCH/cfg-A"
@@ -41,7 +37,6 @@ test_backup_dry_run_announces_archive() {
 # @description Verifies that a dry run has no filesystem side effects: unlike
 #   the announcement test, this one checks that no .tar.gz was produced.
 # @return Status of the final assertion: 0 on pass, 1 on failure.
-# AI-generated code (unreviewed by a human)
 test_backup_dry_run_creates_no_archive() {
     write_config "$SCRATCH/cfg-A" A
     run_script backup.sh --dry-run -c "$SCRATCH/cfg-A"
@@ -51,7 +46,6 @@ test_backup_dry_run_creates_no_archive() {
 # @description Verifies that backup.sh aborts when a configured source
 #   directory is missing, avoiding a silently incomplete archive.
 # @return Status of the final assertion: 0 on pass, 1 on failure.
-# AI-generated code (unreviewed by a human)
 test_backup_missing_source_aborts() {
     # write_config always points at an existing source, so build this config
     # inline with a path that deliberately does not exist.
@@ -69,7 +63,6 @@ EOF
 # @description Verifies that -v is accepted and announces verbose mode, which
 #   also enables tar's --verbose output on a real run.
 # @return Status of the final assertion: 0 on pass, 1 on failure.
-# AI-generated code (unreviewed by a human)
 test_backup_verbose_mode() {
     write_config "$SCRATCH/cfg-A" A
     run_script backup.sh --dry-run -v -c "$SCRATCH/cfg-A"
@@ -79,7 +72,6 @@ test_backup_verbose_mode() {
 # @description Verifies that a notification sent during a dry run uses the
 #   "would be created" wording, matching what the console reports.
 # @return Status of the final assertion: 0 on pass, 1 on failure.
-# AI-generated code (unreviewed by a human)
 test_backup_notification_uses_dry_run_text() {
     write_config "$SCRATCH/cfg-A" A
     allow_notification_daemon
@@ -91,7 +83,6 @@ test_backup_notification_uses_dry_run_text() {
 # @description Verifies that --notify-send aborts when no notification daemon
 #   is running (the default pgrep stub fails), instead of losing the alert.
 # @return Status of the final assertion: 0 on pass, 1 on failure.
-# AI-generated code (unreviewed by a human)
 test_backup_missing_daemon_aborts() {
     write_config "$SCRATCH/cfg-A" A
     run_script backup.sh --dry-run --notify-send -c "$SCRATCH/cfg-A"
@@ -102,7 +93,6 @@ test_backup_missing_daemon_aborts() {
 #   for-dbus is documented but only --wait-for-notification-daemon is accepted.
 #   The test guards against silently changing that public behavior.
 # @return Status of the final assertion: 0 on pass, 1 on failure.
-# AI-generated code (unreviewed by a human)
 test_backup_documented_wait_option_is_rejected() {
     write_config "$SCRATCH/cfg-A" A
     run_script backup.sh --wait-for-dbus --dry-run -c "$SCRATCH/cfg-A"
