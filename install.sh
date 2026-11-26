@@ -20,7 +20,6 @@ REMOTE_FAILURE_COUNT=0
 # @description Prints a colored informational line to stdout.
 # @param $1 Message to display.
 # @return 0.
-# AI-generated code (unreviewed by a human)
 info() {
     printf '%b[INFO]%b %s\n' "$BLUE" "$RESET" "$1"
 }
@@ -28,7 +27,6 @@ info() {
 # @description Prints a colored success line to stdout.
 # @param $1 Message to display.
 # @return 0.
-# AI-generated code (unreviewed by a human)
 success() {
     printf '%b[ OK ]%b %s\n' "$GREEN" "$RESET" "$1"
 }
@@ -36,7 +34,6 @@ success() {
 # @description Prints a colored warning line to stdout.
 # @param $1 Message to display.
 # @return 0.
-# AI-generated code (unreviewed by a human)
 warning() {
     printf '%b[WARN]%b %s\n' "$YELLOW" "$RESET" "$1"
 }
@@ -44,7 +41,6 @@ warning() {
 # @description Prints a colored failure line to stdout.
 # @param $1 Message to display.
 # @return 0.
-# AI-generated code (unreviewed by a human)
 error() {
     printf '%b[FAIL]%b %s\n' "$RED" "$RESET" "$1"
 }
@@ -52,7 +48,6 @@ error() {
 # @description Refuses to continue unless the installer runs with root
 #   privileges.
 # @return 0 when running as root; exits 1 otherwise.
-# AI-generated code (unreviewed by a human)
 require_root() {
     if [ "$(id -u)" != "0" ]; then
         error "This script must be run as root."
@@ -63,7 +58,6 @@ require_root() {
 # @description Resolves the home directory and numeric identity of the user who
 #   invoked sudo, falling back to the current user when they are unavailable.
 # @return 0; sets target_home, target_uid, and target_gid.
-# AI-generated code (unreviewed by a human)
 resolve_target_identity() {
     target_user="${SUDO_USER:-}"
     if [ -n "$target_user" ] && [ "$target_user" != "root" ]; then
@@ -85,7 +79,6 @@ resolve_target_identity() {
 #   copied into /usr/local/bin.
 # @param $1 Basename of the script being considered.
 # @return 0 for install.sh or uninstall.sh; 1 otherwise.
-# AI-generated code (unreviewed by a human)
 is_installer_script() {
     case "$1" in
         install.sh|uninstall.sh) return 0 ;;
@@ -98,7 +91,6 @@ is_installer_script() {
 # @param $1 Basename of the script, used in log messages.
 # @param $2 Full path of the script to copy.
 # @return 0; a failed install is reported but does not propagate.
-# AI-generated code (unreviewed by a human)
 install_script() {
     info "Installing $1..."
     if ! sudo install -m 755 "$2" /usr/local/bin; then
@@ -109,7 +101,6 @@ install_script() {
 # @description Moves a legacy config.conf into place when no current config
 #   exists, remembering the outcome for the later template message.
 # @return 0; sets LEGACY_CONFIG_MIGRATED to 1 only after a successful move.
-# AI-generated code (unreviewed by a human)
 migrate_legacy_config() {
     LEGACY_CONFIG_MIGRATED=0
     if [ ! -e "$config_target" ] && [ -f "$legacy_config" ]; then
@@ -125,7 +116,6 @@ migrate_legacy_config() {
 # @description Offers the template as config.new beside an existing config,
 #   choosing the message that reflects a just-completed migration.
 # @return 0; a failed write is reported but does not propagate.
-# AI-generated code (unreviewed by a human)
 deploy_updated_template() {
     if install -m 644 -o "$target_uid" -g "$target_gid" \
         "$config_source" "$config_target.new"; then
@@ -141,7 +131,6 @@ deploy_updated_template() {
 
 # @description Installs the template as the active config on a fresh setup.
 # @return 0; a failed write is reported but does not propagate.
-# AI-generated code (unreviewed by a human)
 deploy_fresh_template() {
     if install -m 644 -o "$target_uid" -g "$target_gid" \
         "$config_source" "$config_target"; then
@@ -154,7 +143,6 @@ deploy_fresh_template() {
 # @description Deploys the shared template into the invoking user's XDG config
 #   directory, migrating a legacy config first when one is present.
 # @return 0; a missing template is a no-op, as before.
-# AI-generated code (unreviewed by a human)
 deploy_config() {
     [ -f "$config_source" ] || return 0
 
@@ -172,7 +160,6 @@ deploy_config() {
 #   checking the explicit request first and then the installed, legacy, and
 #   repository locations.
 # @return 0; prints the chosen config path, or returns 1 if none is readable.
-# AI-generated code (unreviewed by a human)
 resolve_master_config() {
     local candidate
 
@@ -197,7 +184,6 @@ resolve_master_config() {
 # @description Loads the config used for remote deployment. The repo template is
 #   the fallback, so remote installation stays disabled on a fresh checkout.
 # @return 0; an explicitly requested but unreadable config exits 1.
-# AI-generated code (unreviewed by a human)
 load_deploy_config() {
     local path
 
@@ -216,7 +202,6 @@ load_deploy_config() {
 # @param $1 Host string from REMOTE_SERVERS.
 # @param $@ Command and arguments to run on that host.
 # @return The remote command's exit status.
-# AI-generated code (unreviewed by a human)
 remote_ssh() {
     local host=$1
     shift
@@ -229,7 +214,6 @@ remote_ssh() {
 # @param $2 Host string from REMOTE_SERVERS.
 # @param $3 Destination path on that host.
 # @return The scp exit status.
-# AI-generated code (unreviewed by a human)
 remote_scp() {
     local source=$1
     local host=$2
@@ -243,7 +227,6 @@ remote_scp() {
 # @param $1 Host string from REMOTE_SERVERS.
 # @param $2 Full path of the script to deploy.
 # @return 0 on success; 1 when any remote step fails.
-# AI-generated code (unreviewed by a human)
 install_one_remote_script() {
     local host=$1
     local script=$2
@@ -271,7 +254,6 @@ install_one_remote_script() {
 #   each failure and continuing so one bad host cannot hide the others.
 # @return 0 when all deployments succeed; increments REMOTE_FAILURE_COUNT
 #   otherwise. An empty host list or script set is a no-op.
-# AI-generated code (unreviewed by a human)
 install_remote_scripts() {
     local host script
 
@@ -292,7 +274,6 @@ install_remote_scripts() {
 # @description Installs every script from local/ into /usr/local/bin, skipping
 #   installers that may be placed there by mistake.
 # @return 0; individual failures are reported but do not propagate.
-# AI-generated code (unreviewed by a human)
 install_local_scripts() {
     local file name
 

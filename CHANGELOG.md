@@ -1,9 +1,7 @@
-<!-- AI-generated documentation (not reviewed by a human) -->
 # Changelog
 
 All notable changes to this project are recorded here.
 
-<!-- AI-generated documentation (not reviewed by a human) -->
 ## [1.0.0-pre-alpha] - 2026-11-25
 
 First documented pre-alpha version of the personal-scripts suite. The full
