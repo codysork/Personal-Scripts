@@ -2,9 +2,9 @@
 # @file maintenance-reminder.sh
 # @author Cody Sork <codysork@gmail.com> with help from ChatGPT
 # @created 2026-11-01
-# @modified 2026-11-20
-# @purpose Sends a notification when the computer or server is due for
-#          maintenance.
+# @modified 2026-11-25
+# @description Sends a notification when the computer or server is due for
+#              maintenance.
 #
 # A reminder becomes due once the maintenance interval has elapsed since the
 # timestamp stored in "last-reminder". When due, a "pending" marker is created
@@ -110,27 +110,41 @@ INTERVAL=$((DAYS_DUE * 86400))
 # Functions
 #------------------------------------------------------------------------------
 
+# @description Prints an informational line to stderr.
+# @param $1 Message to display.
+# @return 0.
 info() {
     printf '%s\n' "$1" >&2
 }
 
+# @description Prints a warning line to stderr.
+# @param $1 Message to display.
+# @return 0.
 warn() {
     printf 'WARNING: %s\n' "$1" >&2
 }
 
+# @description Prints an error line to stderr and stops the script.
+# @param $1 Message to display.
+# @return Does not return; exits 1.
 error() {
     printf 'ERROR: %s\n' "$1" >&2
     exit 1
 }
 
+# @description Reports whether a command is available, so missing notification
+#   or SSH tools can be handled without failing.
+# @param $1 Command name to look up in PATH.
+# @return 0 when found, 1 otherwise.
 has_command() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# @purpose Displays a desktop notification and logs the same message
+# @description Displays a desktop notification and logs the same message
 # @param $1 Notification urgency (low, normal, critical)
 # @param $2 Notification title
 # @param $3 Notification body
+# @return 0; a missing or failing notify-send is only warned about.
 notify() {
 
     local urgency=$1
@@ -152,7 +166,10 @@ notify() {
         warn "notify-send failed; notification not displayed."
 }
 
-# @purpose Runs a command on the remote server using non-interactive SSH
+# @description Runs a command on the remote server using non-interactive SSH,
+#   so maintenance checks never prompt for a password.
+# @param $@ Command and arguments to run on the remote host.
+# @return The ssh exit status.
 remote_ssh() {
 
     ssh \
@@ -161,7 +178,9 @@ remote_ssh() {
         "$SERVER_USER@$SERVER" "$@"
 }
 
-# @purpose Checks whether the server is reachable
+# @description Checks whether the server accepts a non-interactive SSH
+#   connection before any remote countdown work is attempted.
+# @return 0 when reachable, 1 otherwise.
 validate_server() {
 
     if ! remote_ssh true; then
@@ -172,7 +191,9 @@ validate_server() {
     return 0
 }
 
-# @purpose Creates the local state directory
+# @description Creates the local state directory on first run so countdown
+#   files can be written.
+# @return 0.
 confirm_state_dir() {
 
     if [[ ! -d "$STATE_DIR" ]]; then
@@ -183,7 +204,9 @@ confirm_state_dir() {
     fi
 }
 
-# @purpose Initializes the local countdown on first run
+# @description Initializes the local countdown on first run by recording the
+#   current time; later runs compare against it.
+# @return 0.
 initialize_local_countdown() {
 
     if [[ ! -f "$LAST_REMINDER" ]]; then
@@ -194,7 +217,9 @@ initialize_local_countdown() {
     fi
 }
 
-# @purpose Initializes the remote countdown on first run
+# @description Initializes the remote countdown on first run, leaving an
+#   existing remote timestamp untouched.
+# @return 0 when initialized or already present, 1 on SSH failure.
 initialize_remote_countdown() {
 
     local output
@@ -219,8 +244,8 @@ REMOTE
     return 0
 }
 
-# @purpose Retrieves the remote maintenance state
-# @output PENDING, MISSING, or the last maintenance timestamp
+# @description Retrieves the remote maintenance state.
+# @return 0; prints PENDING, MISSING, or the last maintenance timestamp.
 remote_status() {
 
     remote_ssh bash -s -- "$REMOTE_STATE_DIR" <<'REMOTE'
@@ -238,7 +263,9 @@ fi
 REMOTE
 }
 
-# @purpose Marks remote maintenance as pending
+# @description Marks remote maintenance as pending so the reminder repeats
+#   until arch-maintenance.sh resets the state.
+# @return 0.
 mark_remote_pending() {
 
     remote_ssh bash -s -- "$REMOTE_STATE_DIR" <<'REMOTE'
@@ -249,10 +276,10 @@ touch "$state_dir/pending" || exit 1
 REMOTE
 }
 
-# @param $1 Label used in warning messages
-# @param $2 Previous maintenance timestamp
-# @return 0 if maintenance is due, 1 if not due, 2 if the timestamp is invalid
-# @purpose Checks whether the maintenance interval has elapsed
+# @description Checks whether the maintenance interval has elapsed.
+# @param $1 Label used in warning messages.
+# @param $2 Previous maintenance timestamp.
+# @return 0 if maintenance is due, 1 if not due, 2 if the timestamp is invalid.
 check_due() {
 
     local label=$1
@@ -271,7 +298,9 @@ check_due() {
     (( NOW - last >= INTERVAL ))
 }
 
-# @purpose Checks local maintenance status
+# @description Checks local maintenance status from the pending marker and
+#   stored timestamp, marking maintenance due when the interval has elapsed.
+# @return 0; updates LOCAL_DUE and LOCAL_STATUS as side effects.
 check_local_maintenance() {
 
     local last
@@ -309,7 +338,9 @@ check_local_maintenance() {
     esac
 }
 
-# @purpose Checks remote maintenance status
+# @description Checks remote maintenance status over SSH and marks it pending
+#   when the remote interval has elapsed.
+# @return 0; updates REMOTE_DUE and REMOTE_STATUS as side effects.
 check_remote_maintenance() {
 
     local result
@@ -360,7 +391,9 @@ check_remote_maintenance() {
     esac
 }
 
-# @purpose Sends the local maintenance notification
+# @description Sends the local maintenance notification with an urgency that
+#   reflects due, healthy, or unknown status.
+# @return 0.
 notify_local() {
 
     if (( LOCAL_DUE )); then
@@ -378,7 +411,9 @@ notify_local() {
     fi
 }
 
-# @purpose Sends the remote maintenance notification
+# @description Sends the remote maintenance notification with an urgency that
+#   reflects due, healthy, or unknown status.
+# @return 0.
 notify_remote() {
 
     if (( REMOTE_DUE )); then
@@ -396,7 +431,9 @@ notify_remote() {
     fi
 }
 
-# @purpose Sends reminders for all configured targets
+# @description Sends reminders for all configured targets, including the
+#   remote one only when SERVER is set.
+# @return 0.
 send_notifications() {
 
     notify_local
@@ -406,6 +443,9 @@ send_notifications() {
     fi
 }
 
+# @description Prepares state, checks local and configured remote maintenance,
+#   and sends notifications summarizing both.
+# @return 0; status problems are warned about rather than propagated.
 main() {
 
     if [[ -n "$SERVER" && -z "$SERVER_USER" ]]; then

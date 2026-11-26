@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Shared helpers for the dependency-free test harness.
-# Each test runs in a disposable scratch tree with local shims so no test
-# touches the real $HOME, /usr/local/bin, a notification daemon, or SSH.
+# @description Shared helpers for the dependency-free test harness. Each test
+#              runs in a disposable scratch tree with local shims so no test
+#              touches the real $HOME, /usr/local/bin, a notification daemon,
+#              or SSH.
 
 TESTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$TESTS_DIR/.." && pwd)"

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# @file config.conf
+# @file config
 # @author Cody Sork <codysork@gmail.com>
 # @description Master configuration for the user-scripts suite.
 #

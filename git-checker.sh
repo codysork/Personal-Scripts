@@ -3,8 +3,8 @@
 # @file git-checker.sh
 # @author Cody Sork <codysork@gmail.com> with help from ChatGPT
 # @created 2026-11-03
-# @modified 2026-11-03
-# @purpose Check whether local Git repositories are up to date with their remotes.
+# @modified 2026-11-25
+# @description Check whether local Git repositories are up to date with their remotes.
 
 set -uo pipefail
 
@@ -87,23 +87,38 @@ RESET='\033[0m'
 # Helpers
 #------------------------------------------------------------------------------
 
+# @description Prints a colored informational line to stdout.
+# @param $1 Message to display.
+# @return 0.
 info() {
     printf "${CYAN}[INFO]${RESET} %s\n" "$1"
 }
 
+# @description Prints a colored success line to stdout.
+# @param $1 Message to display.
+# @return 0.
 success() {
     printf "${GREEN}[OK]${RESET} %s\n" "$1"
 }
 
+# @description Prints a colored warning line to stdout.
+# @param $1 Message to display.
+# @return 0.
 warning() {
     printf "${YELLOW}[WARN]${RESET} %s\n" "$1"
 }
 
+# @description Prints a colored error line to stdout.
+# @param $1 Message to display.
+# @return 0.
 error() {
     printf "${RED}[ERROR]${RESET} %s\n" "$1"
 }
 
-# Check whether a directory should be ignored.
+# @description Reports whether a directory falls under IGNORE_DIRS, so callers
+#   can skip configured subtrees during discovery.
+# @param $1 Directory path to test.
+# @return 0 when ignored, 1 otherwise.
 is_ignored() {
     local dir="$1"
     local ignored
@@ -121,6 +136,9 @@ is_ignored() {
 # Repository Discovery
 #------------------------------------------------------------------------------
 
+# @description Finds Git repositories under SEARCH_DIR, pruning ignored
+#   subtrees and nested .git directories so each repository is listed once.
+# @return 0; repository paths are printed NUL-separated to stdout.
 find_repositories() {
     local dir
     local ignored
@@ -158,6 +176,10 @@ find_repositories() {
 # Working Tree Status
 #------------------------------------------------------------------------------
 
+# @description Reports uncommitted changes in a repository without modifying
+#   anything, so the summary can distinguish dirty working trees.
+# @param $1 Repository path.
+# @return 0 when clean, 1 when changes exist.
 check_working_tree() {
     local repo="$1"
     local status
@@ -184,6 +206,10 @@ check_working_tree() {
 # Repository Status
 #------------------------------------------------------------------------------
 
+# @description Verifies a repository, fetches its remote, and compares the
+#   current branch with its upstream for ahead/behind status.
+# @param $1 Repository path.
+# @return 0 when clean and up to date, 1 when dirty or out of date.
 check_repository() {
     local repo="$1"
     local branch upstream
@@ -250,6 +276,9 @@ check_repository() {
 # Main
 #------------------------------------------------------------------------------
 
+# @description Checks every discovered repository and prints a summary of
+#   clean versus attention-needed counts.
+# @return 0; the summary is printed to stdout.
 main() {
     local repo
     local total=0

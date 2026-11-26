@@ -9,18 +9,30 @@
 # Functions
 #-------------------------------------------------------------------------------
 
+# @description Prints a colored informational line to stdout.
+# @param $1 Message to display.
+# @return 0.
 info() {
     printf '%b[INFO]%b %s\n' "$BLUE" "$RESET" "$1"
 }
 
+# @description Prints a colored success line to stdout.
+# @param $1 Message to display.
+# @return 0.
 success() {
     printf '%b[ OK ]%b %s\n' "$GREEN" "$RESET" "$1"
 }
 
+# @description Prints a colored warning line to stdout.
+# @param $1 Message to display.
+# @return 0.
 warning() {
     printf '%b[WARN]%b %s\n' "$YELLOW" "$RESET" "$1"
 }
 
+# @description Prints a colored failure line to stdout.
+# @param $1 Message to display.
+# @return 0.
 error() {
     printf '%b[FAIL]%b %s\n' "$RED" "$RESET" "$1"
 }

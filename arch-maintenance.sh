@@ -2,8 +2,8 @@
 # @file arch-maintenance.sh
 # @author Cody Sork <codysork@gmail.com>
 # @created 2026-10-30
-# @modified 2026-11-13
-# @purpose Comprehensive Arch Linux system maintenance and diagnostics
+# @modified 2026-11-25
+# @description Comprehensive Arch Linux system maintenance and diagnostics
 #
 # This script performs maintenance checks and reports potential cleanup.
 # It DOES NOT update packages, install packages, or delete anything.
@@ -121,28 +121,47 @@ fi
 # Utility functions
 #------------------------------------------------------------------------------
 
+# @description Prints a titled banner separating sections of the report.
+# @param $1 Section title.
+# @return 0.
 section() {
     printf '\n%b============================================================%b\n' "$BLUE" "$RESET"
     printf '%b %s%b\n' "$BOLD" "$1" "$RESET"
     printf '%b============================================================%b\n' "$BLUE" "$RESET"
 }
 
+# @description Prints a colored informational line to stdout.
+# @param $1 Message to display.
+# @return 0.
 info() {
     printf '%b[INFO]%b %s\n' "$BLUE" "$RESET" "$1"
 }
 
+# @description Prints a colored success line to stdout.
+# @param $1 Message to display.
+# @return 0.
 success() {
     printf '%b[ OK ]%b %s\n' "$GREEN" "$RESET" "$1"
 }
 
+# @description Prints a colored warning line to stdout.
+# @param $1 Message to display.
+# @return 0.
 warning() {
     printf '%b[WARN]%b %s\n' "$YELLOW" "$RESET" "$1"
 }
 
+# @description Prints a colored failure line to stdout.
+# @param $1 Message to display.
+# @return 0.
 error() {
     printf '%b[FAIL]%b %s\n' "$RED" "$RESET" "$1"
 }
 
+# @description Reports whether a command is available, so optional tools can be
+#   skipped instead of failing the whole report.
+# @param $1 Command name to look up in PATH.
+# @return 0 when found, 1 otherwise.
 has_command() {
     command -v "$1" >/dev/null 2>&1
 }

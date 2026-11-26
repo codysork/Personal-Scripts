@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# maintenance-reminder.sh tests. Notifications are shimmed and remote checks
-# are disabled unless a scenario explicitly sets SERVER.
+# @description maintenance-reminder.sh tests. Notifications are shimmed and
+#              remote checks are disabled unless a scenario explicitly sets
+#              SERVER.
 
 # @description Verifies that the first run, which initializes the countdown,
 #   reports a healthy local status instead of claiming maintenance is due.

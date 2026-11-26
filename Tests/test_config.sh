@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# @description Config-resolution tests: environment, CLI, and 
+# @description Config-resolution tests: environment, CLI, and
 #              installed/legacy/repo fallback.
 # @note  A "header" is ARCHIVE_HEADER: the prefix of the archive filename
-#        before the timestamp and .tar.gz suffix. See config for its 
+#        before the timestamp and .tar.gz suffix. See config for its
 #        definition; write_config's second argument sets the default used here.
 
 # @description Verifies that an environment value takes precedence over the

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Backup tests: option handling, dry-run behavior, sources, and notifications.
+# @description Backup tests: option handling, dry-run behavior, sources, and
+#              notifications.
 
 # @description Verifies that --help is a successful exit, not an error path.
 # @return Status of the final assertion: 0 on pass, 1 on failure.

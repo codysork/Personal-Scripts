@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Uninstall tests. Every run uses a throwaway repo copy, never the real tree.
+# @description Uninstall tests. Every run uses a throwaway repo copy, never the
+#              real tree.
 
 # @description Verifies that --help exits successfully on a throwaway repo
 #   copy, so the test never touches the real checkout.

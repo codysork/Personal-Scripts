@@ -1,12 +1,12 @@
 #!/usr/bin/bash
 #
 # @file backup.sh
-# @author Cody Sork <codysork@gmail.com> with help from ChatGPT
+# @author Cody Sork <codysork@gmail.com> with help from AI agents
 # @created 2026-10-31
-# @modified 2026-11-14
-# @purpose Back up specified directories into a compressed archive. Includes
-#          an option for auto notification when the backup is complete.
-#          Also backs up pacman package list and installed AUR packages.
+# @modified 2026-11-25
+# @description Back up specified directories into a compressed archive. Includes
+#              an option for auto notification when the backup is complete.
+#              Also backs up pacman package list and installed AUR packages.
 
 set -euo pipefail
 
@@ -75,34 +75,56 @@ ARCHIVE="$BACKUP_DIR/$ARCHIVE_HEADER-$TIMESTAMP.tar.gz"
 # Functions
 #------------------------------------------------------------------------------
 
+# @description Prints an informational line to stdout.
+# @param $1 Message to display.
+# @return 0.
 info() {
     echo "[INFO] $1"
 }
 
+# @description Prints a log line to stdout.
+# @param $1 Message to display.
+# @return 0.
 log() {
     echo "[LOG] $1"
 }
 
+# @description Prints a success line to stdout.
+# @param $1 Message to display.
+# @return 0.
 success() {
     echo "[ OK ] $1"
 }
 
+# @description Prints a warning line to stdout.
+# @param $1 Message to display.
+# @return 0.
 warning() {
     echo "[WARN] $1"
 }
 
+# @description Prints an error line to stdout.
+# @param $1 Message to display.
+# @return 0.
 error() {
     echo "[ERROR] $1"
 }
 
+# @description Prints a failure line to stdout.
+# @param $1 Message to display.
+# @return 0.
 fail () {
     echo "[FAIL] $1"
 }
 
+# @description Prints the one-line option summary used by help and errors.
+# @return 0; text is written to stdout.
 usage() {
      echo "Usage: $0 [-h|--help] [-c|--config-file FILE] [-v|--verbose] [--dry-run] [--wait-for-dbus] [--notify-send]"
 }
 
+# @description Prints usage followed by the detailed option list.
+# @return 0; text is written to stdout.
 help() {
     usage
     echo
@@ -116,6 +138,9 @@ help() {
     echo "  --notify-send     Send notification after backup is complete"
 }
 
+# @description Checks the known notification daemons with pgrep so --notify-
+#   send can stop early when no daemon is running.
+# @return 0 when a daemon is running, 1 otherwise.
 ensure_notification_daemon() {
     local -a daemons=(
         dunst

@@ -1,8 +1,8 @@
 #!/bin/sh
-# @file install.sh
+# @file uninstall.sh
 # @author Cody Sork <codysork@gmail.com>
 # @created 2026-10-20
-# @modified 2026-10-20
+# @modified 2026-11-25
 # @description Uninstalls all scripts in this directory
 
 #------------------------------------------------------------------------------#

@@ -136,12 +136,14 @@ describes the whole file. Use `@description` for its purpose and, when useful,
 
 Align wrapped lines under the text of their tag: continuations of
 `@description` start under the description text, and continuations of `@note`
-start under the note text. Top-level scripts may also carry `@file`, `@author`,
-`@created`, and `@modified`; keep that style when editing them.
+start under the note text.
 
 <!-- AI-generated documentation (not reviewed by a human) -->
-When a file has a `@modified` tag, update it to the current date in `YYYY-MM-DD`
-form whenever you change that file.
+`@file` must name the file it heads, and `@description` is required in every
+file header. `@author`, `@created`, and `@modified` are optional metadata carried
+by top-level scripts: keep them accurate, and update `@modified` to the current
+date in `YYYY-MM-DD` form whenever you change that file. `@description` is the
+only description tag; `@purpose` is legacy and should be renamed when found.
 
 ### Docblock format
 
@@ -157,19 +159,19 @@ line directly above the function it covers.
 function_name() {
 ```
 
+<!-- AI-generated documentation (not reviewed by a human) -->
 Use these tags:
 
 1. `@description` — one or two sentences about intent, not a restatement of the
    function name. Say why the behavior matters when that is not obvious.
 2. `@param $N` — one line per argument, including `$@` for forwarded arguments.
    Omit the tag when the function takes none.
-3. `@return` — the exit status or value callers can rely on. For a `test_*`
+3. `@return` — the exit status or printed value callers rely on. For a `test_*`
    function, note that the status comes from its final assertion.
-4. `@file`, `@author`, `@created`, `@modified` — header tags for script files.
-   Preserve the existing header style when adding a script.
 
-Some top-level scripts use `@purpose` with the same meaning as `@description`.
-Treat the tags as equivalent and do not mix them within one file.
+Document every function with a docblock, including small logging helpers.
+Describe printed values with `@return` rather than a separate `@output` tag, and
+use `@description` in place of legacy `@purpose`.
 
 ### Explaining blocks of code
 

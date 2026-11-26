@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Dependency-free test runner. Discovers test_* functions in Tests/test_*.sh.
+# @description Dependency-free test runner. Discovers test_* functions in
+#              Tests/test_*.sh.
 
 set -uo pipefail
 
