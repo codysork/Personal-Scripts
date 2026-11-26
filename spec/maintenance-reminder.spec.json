@@ -1,0 +1,150 @@
+{
+  "schema_version": "1.0",
+  "suite": "personal-scripts",
+  "shell": "bash",
+  "policy": {
+    "allow_network": true,
+    "allowed_hosts": [
+      "SERVER (sork.local by default; empty disables remote checks)"
+    ],
+    "allowed_write_paths": [
+      "$STATE_DIR (mkdir -p)",
+      "$STATE_DIR/last-reminder",
+      "$STATE_DIR/pending",
+      "$HOME/$REMOTE_STATE_DIR/last-reminder and pending on SERVER"
+    ],
+    "allow_sudo": false,
+    "require_confirmation_for_destructive": true,
+    "default_timeout_seconds": 30
+  },
+  "scripts": [
+    {
+      "id": "maintenance-reminder",
+      "path": "local/maintenance-reminder.sh",
+      "purpose": "Notifies when local maintenance is due based on DAYS_DUE and the last-reminder timestamp, repeating while a pending marker exists. Remote checks run only when SERVER is non-empty and SERVER_USER is set.",
+      "invocation": "./local/maintenance-reminder.sh [-c|--config-file FILE] [-h|--help]",
+      "arguments": [
+        {
+          "name": "-h|--help",
+          "type": "boolean",
+          "required": false,
+          "description": "Print usage and exit 0."
+        },
+        {
+          "name": "-c|--config-file FILE",
+          "type": "path",
+          "required": false,
+          "description": "Load settings from FILE; a missing value exits 2."
+        },
+        {
+          "name": "--config-file=FILE",
+          "type": "path",
+          "required": false,
+          "description": "Equivalent to -c FILE; an empty value exits 2."
+        }
+      ],
+      "environment": [
+        {
+          "name": "USER_SCRIPTS_CONFIG",
+          "description": "Config file path used when no config-file option is given.",
+          "default": ""
+        },
+        {
+          "name": "XDG_CONFIG_HOME",
+          "description": "Base directory for the installed config lookup.",
+          "default": "$HOME/.config"
+        },
+        {
+          "name": "STATE_DIR",
+          "description": "Directory holding local countdown and pending state.",
+          "default": "${XDG_STATE_HOME:-$HOME/.local/state}/arch-maintenance"
+        },
+        {
+          "name": "DAYS_DUE",
+          "description": "Maintenance interval in days; a non-numeric value warns and falls back to 6.",
+          "default": "6"
+        },
+        {
+          "name": "SERVER",
+          "description": "Remote host for maintenance checks; an empty value disables them.",
+          "default": "sork.local"
+        },
+        {
+          "name": "SERVER_USER",
+          "description": "SSH user for SERVER; an empty value skips remote checks with a warning.",
+          "default": "cody"
+        },
+        {
+          "name": "SSH_TIMEOUT",
+          "description": "SSH connect timeout in seconds.",
+          "default": "5"
+        },
+        {
+          "name": "REMOTE_STATE_DIR",
+          "description": "Remote state directory relative to the remote home.",
+          "default": ".local/state/arch-maintenance"
+        }
+      ],
+      "effects": {
+        "read_paths": [
+          "config (installed, legacy, repository, or -c FILE)",
+          "$STATE_DIR/last-reminder",
+          "$STATE_DIR/pending",
+          "$HOME/$REMOTE_STATE_DIR on SERVER"
+        ],
+        "write_paths": [
+          "$STATE_DIR (mkdir -p)",
+          "$STATE_DIR/last-reminder",
+          "$STATE_DIR/pending",
+          "$HOME/$REMOTE_STATE_DIR/last-reminder and pending on SERVER"
+        ],
+        "network_hosts": [
+          "SERVER via non-interactive ssh"
+        ],
+        "subprocesses": [
+          "date",
+          "mkdir",
+          "touch",
+          "ssh",
+          "notify-send"
+        ],
+        "uses_sudo": false,
+        "destructive": false
+      },
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "Help printed or notifications sent/logged; unreachable server, missing notify-send, invalid DAYS_DUE, and missing remote state are warned about rather than failing."
+        },
+        {
+          "code": 1,
+          "meaning": "Config file unreadable, or local state directory/timestamp could not be created."
+        },
+        {
+          "code": 2,
+          "meaning": "A config-file option was supplied without a non-empty value."
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "maintenance-reminder-help",
+      "command": [
+        "bash",
+        "local/maintenance-reminder.sh",
+        "--help"
+      ],
+      "expected_exit": 0
+    },
+    {
+      "id": "maintenance-reminder-missing-config-value",
+      "command": [
+        "bash",
+        "local/maintenance-reminder.sh",
+        "-c"
+      ],
+      "expected_exit": 2
+    }
+  ]
+}

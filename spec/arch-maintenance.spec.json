@@ -1,0 +1,168 @@
+{
+  "schema_version": "1.0",
+  "suite": "personal-scripts",
+  "shell": "bash",
+  "policy": {
+    "allow_network": true,
+    "allowed_hosts": [
+      "git remotes of repositories checked by GIT_CHECKER"
+    ],
+    "allowed_write_paths": [
+      "temporary directory created by mktemp -d",
+      "$STATE_DIR/pending (removed)",
+      "$STATE_DIR/last-reminder"
+    ],
+    "allow_sudo": true,
+    "require_confirmation_for_destructive": true,
+    "default_timeout_seconds": 30
+  },
+  "scripts": [
+    {
+      "id": "arch-maintenance",
+      "path": "local/arch-maintenance.sh",
+      "purpose": "Produces a read-only Arch Linux maintenance report covering updates, caches, services, timers, journals, filesystems, backups, Timeshift snapshots, and Git status, then resets the local maintenance reminder state. It never installs, upgrades, removes, or cleans anything.",
+      "invocation": "./local/arch-maintenance.sh [-c|--config-file FILE] [-h|--help]",
+      "arguments": [
+        {
+          "name": "-h|--help",
+          "type": "boolean",
+          "required": false,
+          "description": "Print usage and exit 0."
+        },
+        {
+          "name": "-c|--config-file FILE",
+          "type": "path",
+          "required": false,
+          "description": "Load settings from FILE; a missing value exits 2."
+        },
+        {
+          "name": "--config-file=FILE",
+          "type": "path",
+          "required": false,
+          "description": "Equivalent to -c FILE; an empty value exits 2."
+        }
+      ],
+      "environment": [
+        {
+          "name": "USER_SCRIPTS_CONFIG",
+          "description": "Config file path used when no config-file option is given.",
+          "default": ""
+        },
+        {
+          "name": "XDG_CONFIG_HOME",
+          "description": "Base directory for the installed config lookup.",
+          "default": "$HOME/.config"
+        },
+        {
+          "name": "BACKUP_DIR",
+          "description": "Directory searched for fresh backups.",
+          "default": "$HOME/Nextcloud/Backup/Local"
+        },
+        {
+          "name": "ARCHIVE_HEADER",
+          "description": "Prefix required on backup filenames.",
+          "default": "sorkhackmac16-backup"
+        },
+        {
+          "name": "MAX_BACKUP_AGE_DAYS",
+          "description": "Age in days at which the newest backup counts as overdue.",
+          "default": "30"
+        },
+        {
+          "name": "MIN_SNAPSHOTS",
+          "description": "Minimum number of Timeshift snapshots required.",
+          "default": "3"
+        },
+        {
+          "name": "MAX_SNAPSHOT_AGE_DAYS",
+          "description": "Age in days at which the newest snapshot counts as too old.",
+          "default": "30"
+        },
+        {
+          "name": "GIT_CHECKER",
+          "description": "Executable used for the Git repository check.",
+          "default": "/usr/local/bin/git-checker.sh"
+        },
+        {
+          "name": "STATE_DIR",
+          "description": "Directory holding the maintenance countdown and pending marker.",
+          "default": "${XDG_STATE_HOME:-$HOME/.local/state}/arch-maintenance"
+        }
+      ],
+      "effects": {
+        "read_paths": [
+          "config (installed, legacy, repository, or -c FILE)",
+          "/etc (pacnew/pacsave files and broken symlinks)",
+          "$HOME (broken symlinks)",
+          "/usr/lib/modules",
+          "/var/cache",
+          "$BACKUP_DIR",
+          "$GIT_CHECKER",
+          "$STATE_DIR"
+        ],
+        "write_paths": [
+          "temporary directory created by mktemp -d",
+          "$STATE_DIR/pending (removed)",
+          "$STATE_DIR/last-reminder"
+        ],
+        "network_hosts": [
+          "git remotes of repositories checked by GIT_CHECKER"
+        ],
+        "subprocesses": [
+          "pacman",
+          "checkupdates",
+          "paccache",
+          "systemctl",
+          "journalctl",
+          "find",
+          "df",
+          "du",
+          "btrfs",
+          "fwupdmgr",
+          "date",
+          "sudo",
+          "timeshift",
+          "GIT_CHECKER",
+          "mkdir",
+          "rm"
+        ],
+        "uses_sudo": true,
+        "destructive": false
+      },
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "Help printed or the report completed; individual checks may print warnings or errors without changing the exit status."
+        },
+        {
+          "code": 1,
+          "meaning": "Run as root, pacman missing, or config file unreadable."
+        },
+        {
+          "code": 2,
+          "meaning": "A config-file option was supplied without a non-empty value."
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "arch-maintenance-help",
+      "command": [
+        "bash",
+        "local/arch-maintenance.sh",
+        "--help"
+      ],
+      "expected_exit": 0
+    },
+    {
+      "id": "arch-maintenance-missing-config-value",
+      "command": [
+        "bash",
+        "local/arch-maintenance.sh",
+        "-c"
+      ],
+      "expected_exit": 2
+    }
+  ]
+}

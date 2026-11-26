@@ -1,0 +1,154 @@
+{
+  "schema_version": "1.0",
+  "suite": "personal-scripts",
+  "shell": "bash",
+  "policy": {
+    "allow_network": false,
+    "allowed_hosts": [],
+    "allowed_write_paths": [
+      "$BACKUP_DIR (mkdir -p)",
+      "$BACKUP_DIR/$ARCHIVE_HEADER-<YYYYmmddHHMMSS>.tar.gz",
+      "$ARCHIVE.tmp during creation"
+    ],
+    "allow_sudo": false,
+    "require_confirmation_for_destructive": true,
+    "default_timeout_seconds": 30
+  },
+  "scripts": [
+    {
+      "id": "backup",
+      "path": "local/backup.sh",
+      "purpose": "Creates a gzip-compressed tar archive of BACKUP_SOURCES with EXCLUDES and verifies it, optionally sending a desktop notification. --dry-run validates the setup without creating an archive.",
+      "invocation": "./local/backup.sh [-h|--help] [-c|--config-file FILE] [-v|--verbose] [--dry-run] [--wait-for-notification-daemon] [--notify-send]",
+      "arguments": [
+        {
+          "name": "-h|--help",
+          "type": "boolean",
+          "required": false,
+          "description": "Print usage and the option list, then exit 0."
+        },
+        {
+          "name": "-c|--config-file FILE",
+          "type": "path",
+          "required": false,
+          "description": "Load settings from FILE; takes precedence over USER_SCRIPTS_CONFIG and installed/legacy/repository lookup. A missing value exits 2."
+        },
+        {
+          "name": "--config-file=FILE",
+          "type": "path",
+          "required": false,
+          "description": "Equivalent to -c FILE; an empty value exits 2."
+        },
+        {
+          "name": "-v|--verbose",
+          "type": "boolean",
+          "required": false,
+          "description": "Pass --verbose to tar."
+        },
+        {
+          "name": "--dry-run",
+          "type": "boolean",
+          "required": false,
+          "description": "Skip archive creation and verification; report the archive path that would be produced."
+        },
+        {
+          "name": "--wait-for-notification-daemon",
+          "type": "boolean",
+          "required": false,
+          "description": "Wait in 60-second intervals until dunst, mako, xfce4-notifyd, or notification-daemon is running."
+        },
+        {
+          "name": "--notify-send",
+          "type": "boolean",
+          "required": false,
+          "description": "Send a desktop notification after completion; exits 1 when no notification daemon is running."
+        }
+      ],
+      "environment": [
+        {
+          "name": "USER_SCRIPTS_CONFIG",
+          "description": "Config file path used when no config-file option is given.",
+          "default": ""
+        },
+        {
+          "name": "XDG_CONFIG_HOME",
+          "description": "Base directory for the installed config lookup.",
+          "default": "$HOME/.config"
+        },
+        {
+          "name": "BACKUP_DIR",
+          "description": "Destination directory for the archive; created when missing.",
+          "default": "$HOME/Nextcloud/Backup/Local"
+        },
+        {
+          "name": "ARCHIVE_HEADER",
+          "description": "Filename prefix before the 14-digit timestamp.",
+          "default": "sorkhackmac16-backup"
+        }
+      ],
+      "effects": {
+        "read_paths": [
+          "config (installed, legacy, repository, or -c FILE)",
+          "$BACKUP_SOURCES directories",
+          "$EXCLUDES paths"
+        ],
+        "write_paths": [
+          "$BACKUP_DIR (mkdir -p)",
+          "$BACKUP_DIR/$ARCHIVE_HEADER-<YYYYmmddHHMMSS>.tar.gz",
+          "$ARCHIVE.tmp during creation"
+        ],
+        "network_hosts": [],
+        "subprocesses": [
+          "date",
+          "mkdir",
+          "du",
+          "awk",
+          "tar",
+          "pv",
+          "gzip",
+          "rm",
+          "mv",
+          "pgrep",
+          "sleep",
+          "notify-send"
+        ],
+        "uses_sudo": false,
+        "destructive": false
+      },
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "Help printed, dry-run completed, or archive created and verified; a notification is sent when requested."
+        },
+        {
+          "code": 1,
+          "meaning": "Config file unreadable, a BACKUP_SOURCES directory missing, archive creation or verification failed, no notification daemon running with --notify-send, or an unknown option supplied."
+        },
+        {
+          "code": 2,
+          "meaning": "A config-file option was supplied without a non-empty value."
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "backup-help",
+      "command": [
+        "bash",
+        "local/backup.sh",
+        "--help"
+      ],
+      "expected_exit": 0
+    },
+    {
+      "id": "backup-missing-config-value",
+      "command": [
+        "bash",
+        "local/backup.sh",
+        "-c"
+      ],
+      "expected_exit": 2
+    }
+  ]
+}

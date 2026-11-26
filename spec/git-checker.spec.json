@@ -1,0 +1,115 @@
+{
+  "schema_version": "1.0",
+  "suite": "personal-scripts",
+  "shell": "bash",
+  "policy": {
+    "allow_network": true,
+    "allowed_hosts": [
+      "git remotes configured in discovered repositories"
+    ],
+    "allowed_write_paths": [
+      "Git refs/FETCH_HEAD under each discovered repository (git fetch --prune)"
+    ],
+    "allow_sudo": false,
+    "require_confirmation_for_destructive": true,
+    "default_timeout_seconds": 30
+  },
+  "scripts": [
+    {
+      "id": "git-checker",
+      "path": "local/git-checker.sh",
+      "purpose": "Discovers Git repositories under SEARCH_DIR, pruning IGNORE_DIRS and nested .git directories, then reports working-tree changes and ahead/behind status against each branch's upstream, followed by a summary.",
+      "invocation": "./local/git-checker.sh [-c|--config-file FILE] [-h|--help]",
+      "arguments": [
+        {
+          "name": "-h|--help",
+          "type": "boolean",
+          "required": false,
+          "description": "Print usage and exit 0."
+        },
+        {
+          "name": "-c|--config-file FILE",
+          "type": "path",
+          "required": false,
+          "description": "Load settings from FILE; a missing value exits 2."
+        },
+        {
+          "name": "--config-file=FILE",
+          "type": "path",
+          "required": false,
+          "description": "Equivalent to -c FILE; an empty value exits 2."
+        }
+      ],
+      "environment": [
+        {
+          "name": "USER_SCRIPTS_CONFIG",
+          "description": "Config file path used when no config-file option is given.",
+          "default": ""
+        },
+        {
+          "name": "XDG_CONFIG_HOME",
+          "description": "Base directory for the installed config lookup.",
+          "default": "$HOME/.config"
+        },
+        {
+          "name": "SEARCH_DIR",
+          "description": "Root directory searched for Git repositories.",
+          "default": "$HOME"
+        }
+      ],
+      "effects": {
+        "read_paths": [
+          "config (installed, legacy, repository, or -c FILE)",
+          "$SEARCH_DIR",
+          ".git directories and working trees under $SEARCH_DIR"
+        ],
+        "write_paths": [
+          "Git refs/FETCH_HEAD under each discovered repository (git fetch --prune)"
+        ],
+        "network_hosts": [
+          "git remotes configured in discovered repositories"
+        ],
+        "subprocesses": [
+          "find",
+          "git"
+        ],
+        "uses_sudo": false,
+        "destructive": false
+      },
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "Help printed or the repository summary completed; dirty, diverged, detached, or upstream-less repositories are counted in the summary but do not fail the script."
+        },
+        {
+          "code": 1,
+          "meaning": "Config file is unreadable."
+        },
+        {
+          "code": 2,
+          "meaning": "A config-file option was supplied without a non-empty value."
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "git-checker-help",
+      "command": [
+        "bash",
+        "local/git-checker.sh",
+        "--help"
+      ],
+      "expected_exit": 0
+    },
+    {
+      "id": "git-checker-missing-config-value",
+      "command": [
+        "bash",
+        "local/git-checker.sh",
+        "-c"
+      ],
+      "expected_exit": 2
+    }
+  ]
+}

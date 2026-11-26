@@ -1,0 +1,107 @@
+{
+  "schema_version": "1.0",
+  "suite": "personal-scripts",
+  "shell": "bash",
+  "policy": {
+    "allow_network": true,
+    "allowed_hosts": [
+      "each user@host entry in REMOTE_SERVERS (empty in the repository config)"
+    ],
+    "allowed_write_paths": [
+      "/usr/local/bin",
+      "${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts",
+      "remote temporary directory created by mktemp -d",
+      "$REMOTE_INSTALL_DIR/<script> on each host"
+    ],
+    "allow_sudo": true,
+    "require_confirmation_for_destructive": true,
+    "default_timeout_seconds": 30
+  },
+  "scripts": [
+    {
+      "id": "install",
+      "path": "install.sh",
+      "purpose": "Installs every local/*.sh script into /usr/local/bin, deploys remote/*.sh scripts over SSH to configured hosts, and installs the shared config template while migrating a legacy config.conf. Arguments are ignored; settings come from the config file and environment.",
+      "invocation": "sudo ./install.sh",
+      "arguments": [],
+      "environment": [
+        {
+          "name": "SUDO_USER",
+          "description": "Invoking user whose home directory and numeric uid/gid own the deployed config; falls back to the current user.",
+          "default": ""
+        },
+        {
+          "name": "XDG_CONFIG_HOME",
+          "description": "Base directory for the user-scripts config directory.",
+          "default": "$HOME/.config"
+        },
+        {
+          "name": "USER_SCRIPTS_CONFIG",
+          "description": "Explicit config supplying remote deployment settings; takes precedence over installed, legacy, and repository configs.",
+          "default": ""
+        },
+        {
+          "name": "REMOTE_SERVERS",
+          "description": "Array of user@host targets from the config; an empty list disables remote deployment.",
+          "default": "()"
+        },
+        {
+          "name": "REMOTE_INSTALL_DIR",
+          "description": "Destination directory for deployed scripts on each remote host.",
+          "default": "/usr/local/bin"
+        },
+        {
+          "name": "SSH_TIMEOUT",
+          "description": "Non-interactive ssh/scp connect timeout in seconds.",
+          "default": "5"
+        }
+      ],
+      "effects": {
+        "read_paths": [
+          "local/*.sh",
+          "remote/*.sh",
+          "config",
+          "${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts/config",
+          "${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts/config.conf"
+        ],
+        "write_paths": [
+          "/usr/local/bin/<script>",
+          "${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts/config",
+          "${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts/config.new",
+          "remote temporary directory created by mktemp -d",
+          "$REMOTE_INSTALL_DIR/<script> on each host"
+        ],
+        "network_hosts": [
+          "each user@host entry in REMOTE_SERVERS (ssh and scp)"
+        ],
+        "subprocesses": [
+          "id",
+          "getent",
+          "cut",
+          "sudo",
+          "install",
+          "mkdir",
+          "mv",
+          "ssh",
+          "scp",
+          "mktemp",
+          "rm",
+          "basename"
+        ],
+        "uses_sudo": true,
+        "destructive": true
+      },
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "All local scripts were installed (individual local failures are reported only), config was deployed, and every configured remote deployment succeeded; no remote hosts is also success."
+        },
+        {
+          "code": 1,
+          "meaning": "Not run as root, an explicitly requested config file is unreadable, or one or more remote deployments failed."
+        }
+      ]
+    }
+  ],
+  "tests": []
+}

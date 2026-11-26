@@ -1,0 +1,84 @@
+{
+  "schema_version": "1.0",
+  "suite": "personal-scripts",
+  "shell": "bash",
+  "policy": {
+    "allow_network": false,
+    "allowed_hosts": [],
+    "allowed_write_paths": [
+      "/usr/local/bin/<script> (removed with rm -f)"
+    ],
+    "allow_sudo": false,
+    "require_confirmation_for_destructive": true,
+    "default_timeout_seconds": 30
+  },
+  "scripts": [
+    {
+      "id": "uninstall",
+      "path": "uninstall.sh",
+      "purpose": "Removes the scripts listed in local/ from /usr/local/bin by name, leaving the config and repository files untouched. --dry-run reports intended removals without deleting anything.",
+      "invocation": "sudo ./uninstall.sh [--dry-run] [-h|--help]",
+      "arguments": [
+        {
+          "name": "--dry-run",
+          "type": "boolean",
+          "required": false,
+          "description": "Print 'Would uninstall <name>' for each script instead of removing files."
+        },
+        {
+          "name": "-h|--help",
+          "type": "boolean",
+          "required": false,
+          "description": "Print 'Usage: ./uninstall.sh' and exit 0."
+        }
+      ],
+      "environment": [],
+      "effects": {
+        "read_paths": [
+          "local/*.sh"
+        ],
+        "write_paths": [
+          "/usr/local/bin/<script> (removed with rm -f)"
+        ],
+        "network_hosts": [],
+        "subprocesses": [
+          "id",
+          "basename",
+          "rm"
+        ],
+        "uses_sudo": false,
+        "destructive": true
+      },
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "Help or dry-run output printed, or every removal succeeded; missing installed scripts are not errors."
+        },
+        {
+          "code": 1,
+          "meaning": "Not run as root, an unrecognized option was supplied, or an rm command failed."
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "uninstall-help",
+      "command": [
+        "bash",
+        "uninstall.sh",
+        "--help"
+      ],
+      "expected_exit": 0
+    },
+    {
+      "id": "uninstall-invalid-option",
+      "command": [
+        "bash",
+        "uninstall.sh",
+        "--not-an-option"
+      ],
+      "expected_exit": 1
+    }
+  ]
+}
