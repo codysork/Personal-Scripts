@@ -44,7 +44,6 @@ installed_scripts() {
 #   synthetic repo while skipping install.sh and uninstall.sh. The fixture owns
 #   its scripts and config, so the result does not depend on the real repo.
 # @return Status of the final assertion: 0 on pass, 1 on failure.
-# AI-generated code (unreviewed by a human)
 test_install_places_only_runnable_scripts() {
     local repo="$SCRATCH/repo-copy"
     mkdir -p "$repo"
@@ -77,7 +76,6 @@ test_install_deploys_config_template() {
 # @description Verifies that an existing user-edited config is not overwritten;
 #   install.sh should offer the template as config.new instead.
 # @return Status of the final assertion: 0 on pass, 1 on failure.
-# AI-generated code (unreviewed by a human)
 test_install_preserves_existing_config() {
     local repo="$SCRATCH/repo-copy"
     local config_dir="$SCRATCH/xdg/user-scripts"
@@ -93,7 +91,6 @@ test_install_preserves_existing_config() {
 # @description Verifies that a legacy config.conf is moved aside during
 #   install, preventing the old file from shadowing the new config.
 # @return Status of the final assertion: 0 on pass, 1 on failure.
-# AI-generated code (unreviewed by a human)
 test_install_migrates_legacy_config() {
     local repo="$SCRATCH/repo-copy"
     local config_dir="$SCRATCH/xdg/user-scripts"
@@ -109,7 +106,6 @@ test_install_migrates_legacy_config() {
 # @description Verifies that migration preserves the legacy file's contents in
 #   the new config location rather than replacing them with template defaults.
 # @return Status of the final assertion: 0 on pass, 1 on failure.
-# AI-generated code (unreviewed by a human)
 test_install_keeps_migrated_values() {
     local repo="$SCRATCH/repo-copy"
     local config_dir="$SCRATCH/xdg/user-scripts"
