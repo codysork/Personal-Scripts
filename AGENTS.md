@@ -118,7 +118,7 @@ Source: [Clean Code](https://gist.githubusercontent.com/wojteklu/73c6914cc446146
 
 Document functions and non-obvious blocks with tagged `#` comment blocks
 (docblocks). These conventions apply to every shell script in the repository,
-including the files under `Tests/`.
+including the files under `tests/`.
 
 ### File headers
 
@@ -186,24 +186,24 @@ source of its status.
 
 ## Testing
 
-Automated tests live in `Tests/` and use a dependency-free Bash harness, so the
+Automated tests live in `tests/` and use a dependency-free Bash harness, so the
 repository stays script-only and needs no installed test framework.
 
 Run the whole suite, or a single test file:
 
 ```sh
-bash Tests/run.sh
-bash Tests/run.sh test_config.sh
+bash tests/run.sh
+bash tests/run.sh test_config.sh
 ```
 
 Conventions:
 
-1. Test files are `Tests/test_*.sh`; each defines one or more `test_*` functions.
+1. Test files are `tests/test_*.sh`; each defines one or more `test_*` functions.
 2. Make one observable assertion per test using the helpers in
-   `Tests/test-lib.sh`.
+   `tests/test-lib.sh`.
 3. The harness gives every test a disposable scratch directory and local shims.
    Never point a test at the real `$HOME`, `/usr/local/bin`, a notification
    daemon, or an SSH server.
-4. `Tests/run.sh` exits non-zero when any assertion fails.
+4. `tests/run.sh` exits non-zero when any assertion fails.
 5. Keep the `AI-generated code (unreviewed by a human)` marker directly above
    every new function.

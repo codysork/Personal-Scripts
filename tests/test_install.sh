@@ -24,11 +24,12 @@ expected_installed_scripts() {
     local script
     (
         cd "$repo" || exit 99
-        for script in *.sh; do
-            case "$script" in
+        for script in local/*.sh; do
+            [ -f "$script" ] || continue
+            case "${script#local/}" in
                 install.sh|uninstall.sh) continue ;;
             esac
-            printf '%s\n' "$script"
+            printf '%s\n' "${script#local/}"
         done
     ) | sort
 }
@@ -46,13 +47,12 @@ installed_scripts() {
 # @return Status of the final assertion: 0 on pass, 1 on failure.
 test_install_places_only_runnable_scripts() {
     local repo="$SCRATCH/repo-copy"
-    mkdir -p "$repo"
+    mkdir -p "$repo/local"
     # Only install.sh is the code under test; the rest are inert fixtures.
     cp "$REPO_ROOT/install.sh" "$repo/install.sh"
     printf '#!/bin/sh\n' > "$repo/uninstall.sh"
-    printf '#!/bin/sh\n' > "$repo/first-tool.sh"
-    printf '#!/bin/sh\n' > "$repo/second-tool.sh"
-    printf 'ARCHIVE_HEADER=fixture\n' > "$repo/config"
+    printf '#!/bin/sh\n' > "$repo/local/first-tool.sh"
+    printf '#!/bin/sh\n' > "$repo/local/second-tool.sh"
     set_id_shim 0
     allow_install_into_scratch
     run_script_in "$repo" "$repo/install.sh"

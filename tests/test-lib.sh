@@ -29,6 +29,7 @@ clear_inherited_config() {
         DAYS_DUE SERVER SERVER_USER SSH_TIMEOUT REMOTE_STATE_DIR \
         STATE_DIR SEARCH_DIR IGNORE_DIRS MAX_BACKUP_AGE_DAYS \
         MIN_SNAPSHOTS MAX_SNAPSHOT_AGE_DAYS GIT_CHECKER \
+        REMOTE_SERVERS REMOTE_INSTALL_DIR SSH_TIMEOUT \
         USER_SCRIPTS_CONFIG
 }
 
@@ -70,6 +71,12 @@ EOF
     write_shim sudo <<'EOF'
 #!/bin/sh
 exec "$@"
+EOF
+    # Record SCP attempts so remote deployment can be asserted offline.
+    write_shim scp <<EOF
+#!/bin/sh
+printf '%s\n' "\$*" >> "$SCRATCH/scp.log"
+exit 0
 EOF
 }
 
@@ -201,6 +208,95 @@ echo "$uid"
 EOF
 }
 
+# @description Replaces ssh and scp with logging shims that succeed, including
+#   a plausible mktemp response, so remote deployment stays entirely offline.
+# @return 0.
+# AI-generated code (unreviewed by a human)
+allow_remote_install() {
+    write_shim ssh <<EOF
+#!/bin/sh
+printf '%s\n' "\$*" >> "$SCRATCH/ssh.log"
+case "\$*" in
+    *mktemp*) printf '%s\n' "$SCRATCH/remote-tmp" ;;
+esac
+exit 0
+EOF
+    write_shim scp <<EOF
+#!/bin/sh
+printf '%s\n' "\$*" >> "$SCRATCH/scp.log"
+exit 0
+EOF
+}
+
+# @description Replaces ssh with a shim that rejects the install step on one
+#   host while logging every call, so failure isolation can be asserted.
+# @param $1 Host whose install step should fail.
+# @return 0.
+# AI-generated code (unreviewed by a human)
+fail_remote_install_on() {
+    local host=$1
+    write_shim ssh <<EOF
+#!/bin/sh
+printf '%s\n' "\$*" >> "$SCRATCH/ssh.log"
+case "\$*" in
+    *mktemp*) printf '%s\n' "$SCRATCH/remote-tmp" ;;
+esac
+case "\$*" in
+    *"$host"*sudo*) exit 1 ;;
+esac
+exit 0
+EOF
+}
+
+# @description Rewrites /usr/local/bin removals into the scratch bin so
+#   uninstall tests cannot delete anything from the real system.
+# @return 0.
+# AI-generated code (unreviewed by a human)
+allow_uninstall_into_scratch() {
+    write_shim rm <<EOF
+#!/usr/bin/env bash
+args=()
+for arg in "\$@"; do
+    case "\$arg" in
+        /usr/local/bin/*) args+=("$SCRATCH/bin/\${arg##*/}") ;;
+        *) args+=("\$arg") ;;
+    esac
+done
+exec /bin/rm "\${args[@]}"
+EOF
+}
+
+# @description Runs a script from local/ using the sandboxed runner.
+# @param $1 Basename of the script inside local/.
+# @param $@ Remaining arguments passed to the script.
+# @return The script's exit status.
+# AI-generated code (unreviewed by a human)
+run_local_script() {
+    local name=$1
+    shift
+    run_script "local/$name" "$@"
+}
+
+# @description Writes a scratch config that lists the given remote hosts.
+# @param $1 Path of the config file to create.
+# @param $@ Host strings to place in REMOTE_SERVERS.
+# @return 0.
+# AI-generated code (unreviewed by a human)
+write_remote_config() {
+    local path=$1
+    local host
+    shift
+    {
+        printf 'REMOTE_SERVERS=(\n'
+        for host in "$@"; do
+            printf '    "%s"\n' "$host"
+        done
+        printf ')\n'
+        printf 'REMOTE_INSTALL_DIR="%s"\n' "$SCRATCH/remote-bin"
+        printf 'SSH_TIMEOUT=5\n'
+    } > "$path"
+}
+
 # @description Replaces the install stub so writes to /usr/local/bin land in
 #   $SCRATCH/bin and -o/-g ownership flags are dropped, since the harness runs
 #   unprivileged. Used by the install tests to keep the real system untouched.
@@ -229,8 +325,10 @@ EOF
 # @return 0.
 make_repo_copy() {
     local target=$1
-    mkdir -p "$target/Style"
+    mkdir -p "$target/Style" "$target/local" "$target/remote"
     cp "$REPO_ROOT"/*.sh "$REPO_ROOT/config" "$target/"
+    cp -R "$REPO_ROOT/local/." "$target/local/"
+    cp -R "$REPO_ROOT/remote/." "$target/remote/"
     printf 'sentinel\n' > "$target/Style/dummy.css"
 }
 

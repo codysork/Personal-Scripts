@@ -52,7 +52,7 @@ done
 
 # Load the master config. Environment variables override config values.
 _config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts"
-_repo_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+_repo_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 if [[ -z "$_master_config" ]]; then
     if [[ -r "$_config_dir/config" ]]; then
         _master_config="$_config_dir/config"

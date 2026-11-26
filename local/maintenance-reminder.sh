@@ -130,7 +130,7 @@ unset SCRIPT_ARGS
 show_help_if_requested "$@"
 
 # Load the master config. Environment variables override config values.
-REPO_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 load_config "$REPO_DIR"
 unset CONFIG_FILE REPO_DIR
 

@@ -82,3 +82,15 @@ IGNORE_DIRS=(
     "$HOME/Sync/CodyVault"
     "$HOME/.minetest/games/minetest_game"
 )
+
+#------------------------------------------------------------------------------
+# install.sh (remote deployment)
+#------------------------------------------------------------------------------
+
+# AI-generated code (unreviewed by a human)
+# Hosts receiving remote/*.sh. Each entry is a user@host string handed to ssh
+# and scp; an empty list disables remote deployment entirely.
+REMOTE_SERVERS=()
+
+# Destination directory for the deployed scripts on each remote host.
+REMOTE_INSTALL_DIR="${REMOTE_INSTALL_DIR:-/usr/local/bin}"

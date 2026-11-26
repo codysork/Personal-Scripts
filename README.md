@@ -6,6 +6,19 @@ This repository contains a collection of Arch Linux user scripts for managing an
 
 The scripts use `notify-send` to provide alerts, so important information is less likely to get buried in log files. The suite was written for personal use but is designed to be easy to adapt. It includes a configuration file, along with installation and uninstallation scripts.
 
+<!-- AI-generated documentation (not reviewed by a human) -->
+## Script layout
+
+Scripts are grouped by the machine they run on:
+
+- `local/` — installed on this machine by `install.sh`.
+- `remote/` — installed on each host in `REMOTE_SERVERS` by `install.sh`.
+
+`install.sh` and `uninstall.sh` stay at the repository root. Remote deployment
+copies each script with `scp` to a temporary directory, installs it there with
+remote `sudo install`, and then removes the temporary directory. An empty
+`REMOTE_SERVERS` disables remote deployment entirely.
+
 ## Requirements
 
 - 'notify-send'
@@ -42,7 +55,13 @@ config is *sourced* as shell code, so only use files you trust.
 `maintenance-reminder.sh` remote checks are disabled by default; set `SERVER`
 to enable them, or use `SERVER=""` to disable them again.
 
-Uninstallation leaves the config file in place; remove it manually if desired.
+<!-- AI-generated documentation (not reviewed by a human) -->
+Remote deployment targets are listed separately in `REMOTE_SERVERS`, an array
+of `user@host` strings. `REMOTE_INSTALL_DIR` sets the destination directory on
+each host and defaults to `/usr/local/bin`.
+
+Uninstallation removes the local scripts and leaves the config file in place;
+remove it manually if desired. Remote copies are not removed by `uninstall.sh`.
 
 ## Git repository checks
 
