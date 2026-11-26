@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # @file config
-# @author Cody Sork <codysork@gmail.com>
+# @author Cody Sork <codysork@gmail.com> with help from AI agents
+# @modified 2026-11-25
 # @description Master configuration for the user-scripts suite.
 #
 # This file is sourced by the scripts, not executed. Every scalar value uses
