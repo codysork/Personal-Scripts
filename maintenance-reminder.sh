@@ -298,97 +298,141 @@ check_due() {
     (( NOW - last >= INTERVAL ))
 }
 
-# @description Checks local maintenance status from the pending marker and
-#   stored timestamp, marking maintenance due when the interval has elapsed.
-# @return 0; updates LOCAL_DUE and LOCAL_STATUS as side effects.
-check_local_maintenance() {
+# AI-generated documentation (not reviewed by a human)
+# @description Reads one target's maintenance state, reporting retrieval
+#   problems in the wording used for that target.
+# @param $1 Target name: Local or Remote.
+# @return 0; prints PENDING, MISSING, a timestamp, or the remote status output.
+# AI-generated code (unreviewed by a human)
+maintenance_state() {
 
+    local target=$1
     local last
 
-    if [[ -f "$PENDING" ]]; then
-        info "Local maintenance is already pending."
-        LOCAL_DUE=1
+    if [[ "$target" == "Local" ]]; then
+        if [[ -f "$PENDING" ]]; then
+            printf 'PENDING\n'
+        elif read -r last < "$LAST_REMINDER" && [[ -n "$last" ]]; then
+            printf '%s\n' "$last"
+        else
+            warn "Could not read local maintenance timestamp."
+            printf 'MISSING\n'
+        fi
         return 0
     fi
 
-    if ! read -r last < "$LAST_REMINDER" || [[ -z "$last" ]]; then
-        warn "Could not read local maintenance timestamp."
-        LOCAL_STATUS="error"
+    if ! last=$(remote_status); then
+        warn "Could not retrieve remote maintenance status."
         return 1
     fi
 
-    check_due "Local maintenance" "$last"
+    if [[ "$last" == "MISSING" ]]; then
+        warn "Remote maintenance countdown is missing."
+    fi
 
-    case $? in
-        0)
-            info "Local maintenance is due."
-
-            touch "$PENDING" ||
-                error "Could not mark local maintenance as pending."
-
-            LOCAL_DUE=1
-            ;;
-        1)
-            info "Local maintenance is not due yet."
-            ;;
-        *)
-            LOCAL_STATUS="error"
-            return 1
-            ;;
-    esac
+    printf '%s\n' "$last"
 }
 
-# @description Checks remote maintenance status over SSH and marks it pending
-#   when the remote interval has elapsed.
-# @return 0; updates REMOTE_DUE and REMOTE_STATUS as side effects.
-check_remote_maintenance() {
+# AI-generated documentation (not reviewed by a human)
+# @description Marks one target's maintenance as pending.
+# @param $1 Target name: Local or Remote.
+# @return 0 on success; local failures exit via error, remote failures return 1.
+# AI-generated code (unreviewed by a human)
+mark_maintenance_pending() {
 
-    local result
+    if [[ "$1" == "Local" ]]; then
+        touch "$PENDING" ||
+            error "Could not mark local maintenance as pending."
+        return 0
+    fi
 
-    if ! result=$(remote_status); then
-        warn "Could not retrieve remote maintenance status."
-        REMOTE_STATUS="error"
+    if ! mark_remote_pending; then
+        warn "Could not mark remote maintenance as pending."
+        return 1
+    fi
+}
+
+# AI-generated documentation (not reviewed by a human)
+# @description Applies the pending and missing state sentinels and updates the
+#   target's due flag and status.
+# @param $1 Target name: Local or Remote.
+# @param $2 Label used in the pending message.
+# @param $3 State value read for the target.
+# @return 0 when pending was handled, 1 when missing was handled,
+#   2 when the state is a timestamp and checking should continue.
+# AI-generated code (unreviewed by a human)
+handle_state() {
+
+    local target=$1
+    local label=$2
+    local state=$3
+    local -n due="${target^^}_DUE"
+    local -n status="${target^^}_STATUS"
+
+    if [[ "$state" == "PENDING" ]]; then
+        info "$label is already pending."
+        due=1
+        status="ok"
+        return 0
+    fi
+
+    if [[ "$state" == "MISSING" ]]; then
+        status="error"
         return 1
     fi
 
-    case "$result" in
-        PENDING)
-            info "Remote maintenance is already pending."
-            REMOTE_DUE=1
-            REMOTE_STATUS="ok"
-            return 0
-            ;;
-        MISSING)
-            warn "Remote maintenance countdown is missing."
-            REMOTE_STATUS="error"
-            return 1
-            ;;
-    esac
+    status="ok"
+    return 2
+}
 
-    REMOTE_STATUS="ok"
+# AI-generated documentation (not reviewed by a human)
+# @description Checks one target's maintenance state and updates its due flag
+#   and status.
+# @param $1 Target name: Local or Remote.
+# @return 0; problems are reported and reflected in <TARGET>_STATUS.
+# AI-generated code (unreviewed by a human)
+check_maintenance() {
 
-    check_due "Remote maintenance" "$result"
+    local target=$1
+    local label="$target maintenance"
+    local -n due="${target^^}_DUE"
+    local -n status="${target^^}_STATUS"
+    local state
+    local result
 
-    case $? in
-        0)
-            info "Remote maintenance is due."
+    if ! state=$(maintenance_state "$target"); then
+        status="error"
+        return 1
+    fi
 
-            if ! mark_remote_pending; then
-                warn "Could not mark remote maintenance as pending."
-                REMOTE_STATUS="error"
-                return 1
-            fi
+    handle_state "$target" "$label" "$state"
+    result=$?
 
-            REMOTE_DUE=1
-            ;;
-        1)
-            info "Remote maintenance is not due yet."
-            ;;
-        *)
-            REMOTE_STATUS="error"
-            return 1
-            ;;
-    esac
+    if (( result != 2 )); then
+        return "$result"
+    fi
+
+    check_due "$label" "$state"
+    result=$?
+
+    if (( result == 2 )); then
+        status="error"
+        return 1
+    fi
+
+    if (( result == 1 )); then
+        info "$label is not due yet."
+        return 0
+    fi
+
+    info "$label is due."
+
+    if ! mark_maintenance_pending "$target"; then
+        status="error"
+        return 1
+    fi
+
+    due=1
 }
 
 # AI-generated documentation (not reviewed by a human)
@@ -466,13 +510,13 @@ main() {
 
     confirm_state_dir
     initialize_local_countdown
-    check_local_maintenance ||
+    check_maintenance Local ||
         warn "Local maintenance status could not be determined."
 
     if [[ -n "$SERVER" ]]; then
 
         if validate_server && initialize_remote_countdown; then
-            check_remote_maintenance ||
+            check_maintenance Remote ||
                 warn "Remote maintenance status could not be determined."
         else
             REMOTE_STATUS="error"
