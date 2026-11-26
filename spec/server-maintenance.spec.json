@@ -1,0 +1,114 @@
+{
+  "schema_version": "1.0",
+  "suite": "personal-scripts",
+  "shell": "bash",
+  "policy": {
+    "allow_network": true,
+    "allowed_hosts": [
+      "each user@host entry in REMOTE_SERVERS (ssh)"
+    ],
+    "allowed_write_paths": [
+      "on each server: $STATE_DIR/last-reminder and pending (via that server's arch-maintenance.sh)"
+    ],
+    "allow_sudo": false,
+    "require_confirmation_for_destructive": true,
+    "default_timeout_seconds": 30
+  },
+  "scripts": [
+    {
+      "id": "server-maintenance",
+      "path": "local/server-maintenance.sh",
+      "purpose": "SKELETON - not implemented. Runs on this machine and invokes each host in REMOTE_SERVERS to execute that host's installed arch-maintenance.sh, so each server produces its own maintenance report and resets its own reminder state. Planned behavior: help and config-file options exit before any SSH; every host is attempted; a failed host is reported without hiding the others; a nonzero exit means at least one host failed. Open questions: whether this should also trigger the server's backup.sh, whether to pass a config file or other flags through to the remote script, whether non-interactive sudo is available on each server for the Timeshift check, and how per-host failures are aggregated.",
+      "invocation": "./local/server-maintenance.sh [-h|--help] [-c|--config-file FILE]",
+      "arguments": [
+        {
+          "name": "-h|--help",
+          "type": "boolean",
+          "required": false,
+          "description": "Print usage and exit 0 before contacting any host."
+        },
+        {
+          "name": "-c|--config-file FILE",
+          "type": "path",
+          "required": false,
+          "description": "Load settings from FILE; takes precedence over USER_SCRIPTS_CONFIG and installed/legacy/repository lookup. A missing value exits 2."
+        },
+        {
+          "name": "--config-file=FILE",
+          "type": "path",
+          "required": false,
+          "description": "Equivalent to -c FILE; an empty value exits 2."
+        }
+      ],
+      "environment": [
+        {
+          "name": "USER_SCRIPTS_CONFIG",
+          "description": "Config file path used when no config-file option is given.",
+          "default": ""
+        },
+        {
+          "name": "XDG_CONFIG_HOME",
+          "description": "Base directory for the installed config lookup.",
+          "default": "$HOME/.config"
+        },
+        {
+          "name": "REMOTE_SERVERS",
+          "description": "Array of user@host targets; an empty list makes this script a no-op that exits 0.",
+          "default": "()"
+        },
+        {
+          "name": "REMOTE_INSTALL_DIR",
+          "description": "Directory on each server where arch-maintenance.sh is installed; planned command path.",
+          "default": "/usr/local/bin"
+        },
+        {
+          "name": "SSH_TIMEOUT",
+          "description": "Non-interactive ssh connect timeout in seconds.",
+          "default": "5"
+        }
+      ],
+      "effects": {
+        "read_paths": [
+          "config (installed, legacy, repository, or -c FILE)"
+        ],
+        "write_paths": [
+          "on each server: $STATE_DIR/last-reminder and pending (via that server's arch-maintenance.sh)"
+        ],
+        "network_hosts": [
+          "each user@host entry in REMOTE_SERVERS (ssh)"
+        ],
+        "subprocesses": [
+          "ssh"
+        ],
+        "uses_sudo": false,
+        "destructive": false
+      },
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "Help printed, or every configured host ran its maintenance successfully; an empty REMOTE_SERVERS is also success."
+        },
+        {
+          "code": 1,
+          "meaning": "Config file unreadable, or at least one host could not be reached or its maintenance exited nonzero."
+        },
+        {
+          "code": 2,
+          "meaning": "A config-file option was supplied without a non-empty value."
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "server-maintenance-help",
+      "command": ["bash", "local/server-maintenance.sh", "--help"],
+      "expected_exit": 0
+    },
+    {
+      "id": "server-maintenance-missing-config-value",
+      "command": ["bash", "local/server-maintenance.sh", "-c"],
+      "expected_exit": 2
+    }
+  ]
+}
