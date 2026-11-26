@@ -91,7 +91,7 @@
       ],
       "effects": {
         "read_paths": [
-          "config (installed, legacy, repository, or -c FILE)",
+          "config (installed, legacy, local/config, or -c FILE)",
           "/etc (pacnew/pacsave files and broken symlinks)",
           "$HOME (broken symlinks)",
           "/usr/lib/modules",

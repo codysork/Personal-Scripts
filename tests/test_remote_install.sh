@@ -29,10 +29,11 @@ test_remote_install_skips_without_hosts() {
     assert_eq "" "$(cat "$SCRATCH/ssh.log" 2>/dev/null)" "ssh log without hosts"
 }
 
-# @description Verifies that a host with no remote scripts is never contacted.
+# @description Verifies that remote/config is still deployed when no remote
+#   scripts are present, so hosts receive their settings.
 # @return Status of the final assertion: 0 on pass, 1 on failure.
 # AI-generated code (unreviewed by a human)
-test_remote_install_skips_without_remote_scripts() {
+test_remote_install_deploys_config_without_scripts() {
     local repo="$SCRATCH/repo-copy"
     make_remote_test_repo "$repo"
     write_remote_config "$repo/local/config" "cody@example.test"
@@ -40,12 +41,41 @@ test_remote_install_skips_without_remote_scripts() {
     allow_install_into_scratch
     allow_remote_install
     run_script_in "$repo" "$repo/install.sh"
-    assert_eq "" "$(cat "$SCRATCH/ssh.log" 2>/dev/null)" \
-        "ssh log without remote scripts"
+    assert_contains "$(cat "$SCRATCH/scp.log" 2>/dev/null)" "remote/config"
 }
 
-# @description Verifies that one remote script is copied to each configured
-#   host exactly once.
+# @description Verifies that remote/config is copied to each configured host.
+# @return Status of the final assertion: 0 on pass, 1 on failure.
+# AI-generated code (unreviewed by a human)
+test_remote_install_deploys_remote_config() {
+    local repo="$SCRATCH/repo-copy"
+    make_remote_test_repo "$repo"
+    write_remote_config "$repo/local/config" "cody@example.test"
+    set_id_shim 0
+    allow_install_into_scratch
+    allow_remote_install
+    run_script_in "$repo" "$repo/install.sh"
+    assert_contains "$(cat "$SCRATCH/scp.log" 2>/dev/null)" \
+        "remote/config cody@example.test:$SCRATCH/remote-config-dir/config"
+}
+
+# @description Verifies that an existing remote config is preserved as
+#   config.new instead of being overwritten by the template.
+# @return Status of the final assertion: 0 on pass, 1 on failure.
+# AI-generated code (unreviewed by a human)
+test_remote_install_preserves_existing_remote_config() {
+    local repo="$SCRATCH/repo-copy"
+    make_remote_test_repo "$repo"
+    write_remote_config "$repo/local/config" "cody@example.test"
+    set_id_shim 0
+    allow_install_into_scratch
+    existing_remote_config
+    run_script_in "$repo" "$repo/install.sh"
+    assert_contains "$(cat "$SCRATCH/scp.log" 2>/dev/null)" \
+        "remote/config cody@example.test:$SCRATCH/remote-config-dir/config.new"
+}
+
+# @description Verifies that each host receives both the script and the config.
 # @return Status of the final assertion: 0 on pass, 1 on failure.
 # AI-generated code (unreviewed by a human)
 test_remote_install_copies_to_every_host() {
@@ -57,7 +87,7 @@ test_remote_install_copies_to_every_host() {
     allow_install_into_scratch
     allow_remote_install
     run_script_in "$repo" "$repo/install.sh"
-    assert_eq 2 "$(wc -l < "$SCRATCH/scp.log" 2>/dev/null)" \
+    assert_eq 4 "$(wc -l < "$SCRATCH/scp.log" 2>/dev/null)" \
         "scp calls for two hosts"
 }
 

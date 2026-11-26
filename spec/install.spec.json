@@ -5,7 +5,7 @@
   "policy": {
     "allow_network": true,
     "allowed_hosts": [
-      "each user@host entry in REMOTE_SERVERS (empty in the repository config)"
+      "each user@host entry in REMOTE_SERVERS (empty in both repository config templates)"
     ],
     "allowed_write_paths": [
       "/usr/local/bin",
@@ -22,7 +22,7 @@
     {
       "id": "install",
       "path": "install.sh",
-      "purpose": "Installs every local/*.sh script into /usr/local/bin, deploys remote/*.sh scripts over SSH to configured hosts, and installs the shared config template while migrating a legacy config.conf. Arguments are ignored; settings come from the config file and environment. Planned, not yet implemented: copy remote/config to each host's ${XDG_CONFIG_HOME:-~/.config}/user-scripts/config so the remote/ clones source server settings instead of their hardcoded defaults.",
+      "purpose": "Installs every local/*.sh script into /usr/local/bin, deploys remote/*.sh scripts over SSH to configured hosts, and installs the shared config template while migrating a legacy config.conf. Arguments are ignored; settings come from the config file and environment. It also copies remote/config to each host's ${XDG_CONFIG_HOME:-~/.config}/user-scripts/config (or config.new when one exists) so the remote/ scripts source server settings. The local config template comes from local/config; a legacy config.conf is migrated when no current config exists.",
       "invocation": "sudo ./install.sh",
       "arguments": [],
       "environment": [
@@ -71,7 +71,8 @@
           "${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts/config",
           "${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts/config.new",
           "remote temporary directory created by mktemp -d",
-          "$REMOTE_INSTALL_DIR/<script> on each host"
+          "$REMOTE_INSTALL_DIR/<script> on each host",
+          "${XDG_CONFIG_HOME:-~/.config}/user-scripts/config or config.new on each host (from remote/config)"
         ],
         "network_hosts": [
           "each user@host entry in REMOTE_SERVERS (ssh and scp)"
@@ -96,11 +97,11 @@
       "exit_codes": [
         {
           "code": 0,
-          "meaning": "All local scripts were installed (individual local failures are reported only), the local config was deployed, and every configured remote deployment (scripts and, once implemented, remote/config) succeeded; no remote hosts is also success."
+          "meaning": "All local scripts were installed (individual local failures are reported only), the local config was deployed, and every configured remote deployment (scripts and remote/config) succeeded; no remote hosts is also success."
         },
         {
           "code": 1,
-          "meaning": "Not run as root, an explicitly requested config file is unreadable, or one or more remote deployments (scripts or, once implemented, remote/config) failed."
+          "meaning": "Not run as root, an explicitly requested config file is unreadable, or one or more remote deployments (scripts or remote/config) failed."
         }
       ]
     }

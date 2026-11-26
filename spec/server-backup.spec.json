@@ -6,8 +6,8 @@
     "allow_network": false,
     "allowed_hosts": [],
     "allowed_write_paths": [
-      "$HOME/Sync/Nextcloud/Backup/Remote (created when missing)",
-      "$HOME/Sync/Nextcloud/Backup/Remote/sorkhackmac12-remote-backup-<YYYYmmddHHMMSS>.tar.gz"
+      "$BACKUP_DIR (created when missing)",
+      "$BACKUP_DIR/$ARCHIVE_HEADER-<YYYYmmddHHMMSS>.tar.gz"
     ],
     "allow_sudo": false,
     "require_confirmation_for_destructive": true,
@@ -17,7 +17,7 @@
     {
       "id": "server-backup",
       "path": "remote/server-backup.sh",
-      "purpose": "Runs on a server and creates a gzip-compressed tar archive of the server's own directories into $HOME/Sync/Nextcloud/Backup/Remote. Settings are hardcoded in the script; it does not load a config file or contact other hosts. install.sh deploys this script to each host in REMOTE_SERVERS and does not run it remotely. Expected outcome after a successful run: an archive matching sorkhackmac12-remote-backup-<YYYYmmddHHMMSS>.tar.gz exists in that backup directory. Open questions: help text advertises --wait-for-dbus while the parser accepts --wait-for-notification-daemon; remote/config is planned for deployment by install.sh but this script does not source any config file.",
+      "purpose": "Runs on a server and creates a gzip-compressed tar archive of that server's own directories. Settings come from USER_SCRIPTS_CONFIG, the installed config, or the repository's remote/config template. install.sh deploys both this script and remote/config to each host in REMOTE_SERVERS; no local orchestrator is involved. Open question: help text advertises --wait-for-dbus while the parser accepts --wait-for-notification-daemon.",
       "invocation": "./server-backup.sh [-h|--help] [-v|--verbose] [--dry-run] [--wait-for-notification-daemon] [--notify-send]",
       "arguments": [
         {
@@ -53,21 +53,41 @@
       ],
       "environment": [
         {
-          "name": "HOME",
-          "description": "Base for the hardcoded backup directory, source directories, and exclusion strings.",
+          "name": "USER_SCRIPTS_CONFIG",
+          "description": "Explicit config path; takes precedence over the installed config and remote/config. An unreadable explicit path is an error.",
           "default": ""
+        },
+        {
+          "name": "XDG_CONFIG_HOME",
+          "description": "Base directory for the installed config lookup.",
+          "default": "$HOME/.config"
+        },
+        {
+          "name": "HOME",
+          "description": "Base for config-defined paths and exclusions.",
+          "default": ""
+        },
+        {
+          "name": "BACKUP_DIR",
+          "description": "Destination directory for the archive.",
+          "default": "$HOME/Sync/Nextcloud/Backup/Remote (remote/config)"
+        },
+        {
+          "name": "ARCHIVE_HEADER",
+          "description": "Filename prefix before the 14-digit timestamp.",
+          "default": "sorkhackmac12-remote-backup (remote/config)"
         }
       ],
       "effects": {
         "read_paths": [
-          "$HOME/.config",
-          "$HOME/Hosting",
-          "$HOME/Scripts",
-          "$EXCLUDES paths (currently empty)"
+          "config (installed, legacy, remote/config, or USER_SCRIPTS_CONFIG)",
+          "$BACKUP_SOURCES directories",
+          "$EXCLUDES paths"
         ],
         "write_paths": [
-          "$HOME/Sync/Nextcloud/Backup/Remote (mkdir -p)",
-          "$HOME/Sync/Nextcloud/Backup/Remote/sorkhackmac12-remote-backup-<YYYYmmddHHMMSS>.tar.gz"
+          "$BACKUP_DIR (mkdir -p)",
+          "$BACKUP_DIR/$ARCHIVE_HEADER-<YYYYmmddHHMMSS>.tar.gz",
+          "$ARCHIVE.tmp during creation"
         ],
         "network_hosts": [],
         "subprocesses": [
@@ -94,7 +114,7 @@
         },
         {
           "code": 1,
-          "meaning": "Unknown option, a source directory missing, archive creation or verification failed, or no notification daemon running with --notify-send."
+          "meaning": "Config file unreadable, unknown option, a BACKUP_SOURCES directory missing, archive creation or verification failed, or no notification daemon running with --notify-send."
         }
       ]
     }

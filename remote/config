@@ -20,7 +20,7 @@
 #------------------------------------------------------------------------------
 
 BACKUP_DIR="${BACKUP_DIR:-$HOME/Sync/Nextcloud/Backup/Remote}"
-ARCHIVE_HEADER="${ARCHIVE_HEADER:-sorkhackmac12-backup}"
+ARCHIVE_HEADER="${ARCHIVE_HEADER:-sorkhackmac12-remote-backup}"
 STATE_DIR="${STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/arch-maintenance}"
 
 #------------------------------------------------------------------------------

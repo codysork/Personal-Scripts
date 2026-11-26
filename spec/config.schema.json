@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "user-scripts configuration",
-  "description": "JSON form of the values declared in the repository's config file. Scalars mirror ${VAR:-default} entries; arrays are config-only. Paths are literal strings; a JSON consumer must expand or resolve them itself.",
+  "description": "JSON form of the values declared in the repository's local/config and remote/config templates. Scalars mirror ${VAR:-default} entries; arrays are config-only. Paths are literal strings; a JSON consumer must expand or resolve them itself.",
   "type": "object",
   "properties": {
     "BACKUP_DIR": { "type": "string", "minLength": 1, "description": "Destination directory for backup archives." },

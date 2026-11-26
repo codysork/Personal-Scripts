@@ -1,12 +1,11 @@
 #!/usr/bin/bash
 #
-# @file backup.sh
+# @file server-backup.sh
 # @author Cody Sork <codysork@gmail.com> with help from ChatGPT
 # @created 2026-10-31
-# @modified 2026-11-24
-# @purpose Back up specified directories into a compressed archive. Includes
-#          an option for auto notification when the backup is complete.
-#          Also backs up pacman package list and installed AUR packages.
+# @modified 2026-11-25
+# @description Backs up the server's own directories into a compressed archive,
+#              using the installed remote config or the repository template.
 
 set -euo pipefail
 
@@ -14,19 +13,44 @@ set -euo pipefail
 # Configuration
 #------------------------------------------------------------------------------
 
-BACKUP_DIR="$HOME/Sync/Nextcloud/Backup/Remote"
+# @description Loads server settings from USER_SCRIPTS_CONFIG, the installed
+#   config, or the repository's remote/config template, in that order. An
+#   explicitly requested unreadable config is an error; missing files fall
+#   through to the next location.
+# @return 0; exits 1 when an explicitly requested config cannot be read.
+# AI-generated code (unreviewed by a human)
+load_remote_config() {
+    local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts"
+    local repo_dir candidate
+    local path="${USER_SCRIPTS_CONFIG:-}"
 
-BACKUP_SOURCES=(
-    "$HOME/.config"
-    "$HOME/Hosting"
-    "$HOME/Scripts"
-)
+    repo_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 
-EXCLUDES=(
-)
+    if [[ -z "$path" ]]; then
+        for candidate in \
+            "$config_dir/config" \
+            "$config_dir/config.conf" \
+            "$repo_dir/remote/config"; do
+            if [[ -r "$candidate" ]]; then
+                path=$candidate
+                break
+            fi
+        done
+    fi
+
+    if [[ -n "$path" ]]; then
+        if [[ ! -r "$path" ]]; then
+            printf 'Error: Config file is not readable: %s\n' "$path" >&2
+            exit 1
+        fi
+        # shellcheck disable=SC1090
+        source "$path"
+    fi
+}
+
+load_remote_config
 
 TIMESTAMP=$(date '+%Y%m%d%H%M%S')
-ARCHIVE_HEADER="sorkhackmac12-remote-backup"
 ARCHIVE="$BACKUP_DIR/$ARCHIVE_HEADER-$TIMESTAMP.tar.gz"
 
 #------------------------------------------------------------------------------

@@ -1,0 +1,78 @@
+{
+  "schema_version": "1.0",
+  "suite": "personal-scripts",
+  "shell": "bash",
+  "policy": {
+    "allow_network": true,
+    "allowed_hosts": [
+      "git remotes of repositories discovered under SEARCH_DIR"
+    ],
+    "allowed_write_paths": [
+      "Git refs/FETCH_HEAD under each discovered repository (git fetch --prune)"
+    ],
+    "allow_sudo": false,
+    "require_confirmation_for_destructive": true,
+    "default_timeout_seconds": 30
+  },
+  "scripts": [
+    {
+      "id": "git-checker-remote",
+      "path": "remote/git-checker.sh",
+      "purpose": "Runs on a server, discovers Git repositories under SEARCH_DIR, and reports working-tree changes and ahead/behind status against each branch's upstream, followed by a summary. Settings come from USER_SCRIPTS_CONFIG, the installed config, or the repository's remote/config template; arguments are ignored. install.sh deploys this script to each host in REMOTE_SERVERS, and it is invoked by remote/arch-server-maintenance.sh through GIT_CHECKER.",
+      "invocation": "./git-checker.sh (arguments are ignored)",
+      "arguments": [],
+      "environment": [
+        {
+          "name": "USER_SCRIPTS_CONFIG",
+          "description": "Explicit config path; takes precedence over the installed config and remote/config. An unreadable explicit path is an error.",
+          "default": ""
+        },
+        {
+          "name": "XDG_CONFIG_HOME",
+          "description": "Base directory for the installed config lookup.",
+          "default": "$HOME/.config"
+        },
+        {
+          "name": "HOME",
+          "description": "Base for config-defined paths and the default search root.",
+          "default": ""
+        },
+        {
+          "name": "SEARCH_DIR",
+          "description": "Root directory searched for Git repositories.",
+          "default": "$HOME (remote/config)"
+        }
+      ],
+      "effects": {
+        "read_paths": [
+          "config (installed, legacy, remote/config, or USER_SCRIPTS_CONFIG)",
+          "$SEARCH_DIR",
+          ".git directories and working trees under $SEARCH_DIR"
+        ],
+        "write_paths": [
+          "Git refs/FETCH_HEAD under each discovered repository (git fetch --prune)"
+        ],
+        "network_hosts": [
+          "git remotes of repositories under SEARCH_DIR"
+        ],
+        "subprocesses": [
+          "find",
+          "git"
+        ],
+        "uses_sudo": false,
+        "destructive": false
+      },
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "The repository summary completed; dirty, diverged, detached, or upstream-less repositories are counted in the summary but do not fail the script."
+        },
+        {
+          "code": 1,
+          "meaning": "Config file is unreadable."
+        }
+      ]
+    }
+  ],
+  "tests": []
+}

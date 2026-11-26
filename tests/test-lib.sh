@@ -217,7 +217,31 @@ allow_remote_install() {
 #!/bin/sh
 printf '%s\n' "\$*" >> "$SCRATCH/ssh.log"
 case "\$*" in
+    *test\ -e*) exit 1 ;;
+    *user-scripts*) printf '%s\n' "$SCRATCH/remote-config-dir" ;;
     *mktemp*) printf '%s\n' "$SCRATCH/remote-tmp" ;;
+esac
+exit 0
+EOF
+    write_shim scp <<EOF
+#!/bin/sh
+printf '%s\n' "\$*" >> "$SCRATCH/scp.log"
+exit 0
+EOF
+}
+
+# @description Sets up remote shims that report an existing config on the host,
+#   so preservation of user-edited remote configs can be asserted.
+# @return 0.
+# AI-generated code (unreviewed by a human)
+existing_remote_config() {
+    write_shim ssh <<EOF
+#!/bin/sh
+printf '%s\n' "\$*" >> "$SCRATCH/ssh.log"
+case "\$*" in
+    *mktemp*) printf '%s\n' "$SCRATCH/remote-tmp" ;;
+    *user-scripts*) printf '%s\n' "$SCRATCH/remote-config-dir" ;;
+    *test\ -e*) exit 0 ;;
 esac
 exit 0
 EOF
@@ -239,6 +263,8 @@ fail_remote_install_on() {
 #!/bin/sh
 printf '%s\n' "\$*" >> "$SCRATCH/ssh.log"
 case "\$*" in
+    *test\ -e*) exit 1 ;;
+    *user-scripts*) printf '%s\n' "$SCRATCH/remote-config-dir" ;;
     *mktemp*) printf '%s\n' "$SCRATCH/remote-tmp" ;;
 esac
 case "\$*" in

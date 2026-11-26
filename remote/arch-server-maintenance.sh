@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# @file arch-maintenance.sh
+# @file arch-server-maintenance.sh
 # @author Cody Sork <codysork@gmail.com>
 # @created 2026-10-30
-# @modified 2026-11-13
-# @purpose Comprehensive Arch Linux system maintenance and diagnostics
+# @modified 2026-11-25
+# @description Produces a read-only Arch Linux maintenance report on a server,
+#              using settings from the installed remote config or repository
+#              template instead of hardcoded values.
 #
 # This script performs maintenance checks and reports potential cleanup.
 # It DOES NOT update packages, install packages, or delete anything.
@@ -18,8 +20,8 @@
 #   fwupd (optional, for firmware updates)
 #
 # Run:
-#   chmod +x arch-maintenance.sh
-#   ./arch-maintenance.sh
+#   chmod +x arch-server-maintenance.sh
+#   ./arch-server-maintenance.sh
 
 set -uo pipefail
 
@@ -27,16 +29,50 @@ set -uo pipefail
 # Configuration
 #------------------------------------------------------------------------------
 
+# @description Loads server settings from USER_SCRIPTS_CONFIG, the installed
+#   config, or the repository's remote/config template, in that order. An
+#   explicitly requested unreadable config is an error; missing files fall
+#   through to the next location.
+# @return 0; exits 1 when an explicitly requested config cannot be read.
+# AI-generated code (unreviewed by a human)
+load_remote_config() {
+    local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts"
+    local repo_dir candidate
+    local path="${USER_SCRIPTS_CONFIG:-}"
+
+    repo_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+
+    if [[ -z "$path" ]]; then
+        for candidate in \
+            "$config_dir/config" \
+            "$config_dir/config.conf" \
+            "$repo_dir/remote/config"; do
+            if [[ -r "$candidate" ]]; then
+                path=$candidate
+                break
+            fi
+        done
+    fi
+
+    if [[ -n "$path" ]]; then
+        if [[ ! -r "$path" ]]; then
+            printf 'Error: Config file is not readable: %s\n' "$path" >&2
+            exit 1
+        fi
+        # shellcheck disable=SC1090
+        source "$path"
+    fi
+}
+
+load_remote_config
+
 SCRIPT_NAME="Arch Linux Maintenance"
 TMPDIR_SCRIPT=$(mktemp -d)
-BACKUP_DIR="$HOME/Nextcloud/Backup/Local"
-MAX_BACKUP_AGE_DAYS=30
 
 trap 'rm -rf "$TMPDIR_SCRIPT"' EXIT
 
 # Backup
 TIMESTAMP=$(date '+%Y%m%d%H%M%S')
-ARCHIVE_HEADER="sorkhackmac16-backup"
 ARCHIVE="$BACKUP_DIR/$ARCHIVE_HEADER-$TIMESTAMP.tar.gz"
 
 #------------------------------------------------------------------------------
@@ -607,9 +643,7 @@ fi
 
 section "TIMESHIFT FRESHNESS"
 
-# Configuration
-MIN_SNAPSHOTS=3
-MAX_SNAPSHOT_AGE_DAYS=30
+# Snapshot thresholds come from the loaded remote config.
 
 if ! has_command timeshift; then
 
@@ -710,8 +744,6 @@ fi
 
 section "GIT REPOSITORY STATUS"
 
-GIT_CHECKER="/usr/local/bin/git-checker.sh"
-
 if [[ ! -x "$GIT_CHECKER" ]]; then
 
     error "Git checker not found or not executable: $GIT_CHECKER"
@@ -736,7 +768,6 @@ fi
 # 22. Disable Maintenance Reminder
 #------------------------------------------------------------------------------
 
-STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/arch-maintenance"
 PENDING="$STATE_DIR/pending"
 
 rm -f "$PENDING"

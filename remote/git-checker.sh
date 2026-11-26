@@ -3,8 +3,10 @@
 # @file git-checker.sh
 # @author Cody Sork <codysork@gmail.com> with help from ChatGPT
 # @created 2026-11-03
-# @modified 2026-11-03
-# @purpose Check whether local Git repositories are up to date with their remotes.
+# @modified 2026-11-25
+# @description Checks Git repositories under the configured search directory on
+#              a server, using settings from the installed remote config or the
+#              repository template.
 
 set -uo pipefail
 
@@ -12,15 +14,42 @@ set -uo pipefail
 # Configuration
 #------------------------------------------------------------------------------
 
-SEARCH_DIR="$HOME"
+# @description Loads server settings from USER_SCRIPTS_CONFIG, the installed
+#   config, or the repository's remote/config template, in that order. An
+#   explicitly requested unreadable config is an error; missing files fall
+#   through to the next location.
+# @return 0; exits 1 when an explicitly requested config cannot be read.
+# AI-generated code (unreviewed by a human)
+load_remote_config() {
+    local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts"
+    local repo_dir candidate
+    local path="${USER_SCRIPTS_CONFIG:-}"
 
-IGNORE_DIRS=(
-    "$HOME/.cache"
-    "$HOME/.local/share"
-    "$HOME/.ohmyzsh"
-    "$HOME/Sync/CodyVault"
-    "$HOME/.minetest/minetest_game"
-)
+    repo_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+
+    if [[ -z "$path" ]]; then
+        for candidate in \
+            "$config_dir/config" \
+            "$config_dir/config.conf" \
+            "$repo_dir/remote/config"; do
+            if [[ -r "$candidate" ]]; then
+                path=$candidate
+                break
+            fi
+        done
+    fi
+
+    if [[ -n "$path" ]]; then
+        if [[ ! -r "$path" ]]; then
+            printf 'Error: Config file is not readable: %s\n' "$path" >&2
+            exit 1
+        fi
+        # shellcheck disable=SC1090
+        source "$path"
+    fi
+}
+
+load_remote_config
 
 #------------------------------------------------------------------------------
 # Colors

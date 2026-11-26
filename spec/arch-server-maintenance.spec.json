@@ -5,12 +5,12 @@
   "policy": {
     "allow_network": true,
     "allowed_hosts": [
-      "git remotes of repositories checked by /usr/local/bin/git-checker.sh"
+      "git remotes of repositories checked by $GIT_CHECKER (default /usr/local/bin/git-checker.sh)"
     ],
     "allowed_write_paths": [
       "temporary directory created by mktemp -d",
-      "${XDG_STATE_HOME:-$HOME/.local/state}/arch-maintenance/pending (removed)",
-      "${XDG_STATE_HOME:-$HOME/.local/state}/arch-maintenance/last-reminder"
+      "$STATE_DIR/pending (removed)",
+      "$STATE_DIR/last-reminder"
     ],
     "allow_sudo": true,
     "require_confirmation_for_destructive": true,
@@ -20,38 +20,79 @@
     {
       "id": "arch-server-maintenance",
       "path": "remote/arch-server-maintenance.sh",
-      "purpose": "Runs on a server and produces a read-only Arch Linux maintenance report, then clears that server's pending maintenance marker. Settings are hardcoded in the script: it ignores arguments and does not load a config file or contact other hosts. install.sh deploys this script to each host in REMOTE_SERVERS and does not run it remotely. The Git repository check is performed by invoking /usr/local/bin/git-checker.sh, deployed separately from remote/git-checker.sh. Open questions: remote/config is planned for deployment by install.sh but this script does not source any config file, so its hardcoded backup path, snapshot limits, and checker path remain fixed.",
+      "purpose": "Runs on a server and produces a read-only Arch Linux maintenance report, then clears that server's pending maintenance marker. Settings come from USER_SCRIPTS_CONFIG, the installed config, or the repository's remote/config template; arguments are ignored. install.sh deploys this script, remote/git-checker.sh, and remote/config to each host in REMOTE_SERVERS; no local orchestrator is involved.",
       "invocation": "./arch-server-maintenance.sh (arguments are ignored)",
       "arguments": [],
       "environment": [
         {
-          "name": "HOME",
-          "description": "Base for hardcoded backup path, searched home directory, and default state directory.",
+          "name": "USER_SCRIPTS_CONFIG",
+          "description": "Explicit config path; takes precedence over the installed config and remote/config. An unreadable explicit path is an error.",
           "default": ""
         },
         {
-          "name": "XDG_STATE_HOME",
-          "description": "Base for the maintenance state directory holding pending and last-reminder.",
-          "default": "$HOME/.local/state"
+          "name": "XDG_CONFIG_HOME",
+          "description": "Base directory for the installed config lookup.",
+          "default": "$HOME/.config"
+        },
+        {
+          "name": "HOME",
+          "description": "Base for config-defined paths and the searched home directory.",
+          "default": ""
+        },
+        {
+          "name": "BACKUP_DIR",
+          "description": "Directory searched for fresh backups.",
+          "default": "$HOME/Sync/Nextcloud/Backup/Remote (remote/config)"
+        },
+        {
+          "name": "ARCHIVE_HEADER",
+          "description": "Prefix required on backup filenames.",
+          "default": "sorkhackmac12-remote-backup (remote/config)"
+        },
+        {
+          "name": "STATE_DIR",
+          "description": "Directory holding the maintenance countdown and pending marker.",
+          "default": "${XDG_STATE_HOME:-$HOME/.local/state}/arch-maintenance"
+        },
+        {
+          "name": "MAX_BACKUP_AGE_DAYS",
+          "description": "Age in days at which the newest backup counts as overdue.",
+          "default": "30"
+        },
+        {
+          "name": "MIN_SNAPSHOTS",
+          "description": "Minimum number of Timeshift snapshots required.",
+          "default": "3"
+        },
+        {
+          "name": "MAX_SNAPSHOT_AGE_DAYS",
+          "description": "Age in days at which the newest snapshot counts as too old.",
+          "default": "30"
+        },
+        {
+          "name": "GIT_CHECKER",
+          "description": "Executable used for the Git repository check.",
+          "default": "/usr/local/bin/git-checker.sh"
         }
       ],
       "effects": {
         "read_paths": [
+          "config (installed, legacy, remote/config, or USER_SCRIPTS_CONFIG)",
           "/etc (pacnew/pacsave files and broken symlinks)",
           "$HOME (broken symlinks)",
           "/usr/lib/modules",
           "/var/cache",
-          "$HOME/Nextcloud/Backup/Local",
-          "/usr/local/bin/git-checker.sh",
-          "${XDG_STATE_HOME:-$HOME/.local/state}/arch-maintenance"
+          "$BACKUP_DIR",
+          "$GIT_CHECKER",
+          "$STATE_DIR"
         ],
         "write_paths": [
           "temporary directory created by mktemp -d",
-          "${XDG_STATE_HOME:-$HOME/.local/state}/arch-maintenance/pending (removed)",
-          "${XDG_STATE_HOME:-$HOME/.local/state}/arch-maintenance/last-reminder"
+          "$STATE_DIR/pending (removed)",
+          "$STATE_DIR/last-reminder"
         ],
         "network_hosts": [
-          "git remotes of repositories checked by /usr/local/bin/git-checker.sh"
+          "git remotes of repositories checked by $GIT_CHECKER"
         ],
         "subprocesses": [
           "pacman",
@@ -67,7 +108,7 @@
           "date",
           "sudo",
           "timeshift",
-          "/usr/local/bin/git-checker.sh",
+          "$GIT_CHECKER",
           "mkdir",
           "rm"
         ],
@@ -81,7 +122,7 @@
         },
         {
           "code": 1,
-          "meaning": "Run as root, or pacman missing."
+          "meaning": "Run as root, pacman missing, or config file unreadable."
         }
       ]
     }

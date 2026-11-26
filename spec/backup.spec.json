@@ -88,7 +88,7 @@
       ],
       "effects": {
         "read_paths": [
-          "config (installed, legacy, repository, or -c FILE)",
+          "config (installed, legacy, local/config, or -c FILE)",
           "$BACKUP_SOURCES directories",
           "$EXCLUDES paths"
         ],

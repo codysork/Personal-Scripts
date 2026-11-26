@@ -250,17 +250,46 @@ install_one_remote_script() {
     remote_ssh "$host" "rm -rf '$temp_dir'" >/dev/null 2>&1 || true
 }
 
-# @description Deploys every remote/ script to every configured host, reporting
-#   each failure and continuing so one bad host cannot hide the others.
+# @description Deploys remote/config into the invoking user's XDG config
+#   directory on one host. An existing config is kept and the template is
+#   offered as config.new, matching the local installer.
+# @param $1 Host string from REMOTE_SERVERS.
+# @return 0 on success; 1 when any remote step fails.
+# AI-generated code (unreviewed by a human)
+install_remote_config_on_host() {
+    local host=$1
+    local config_source="$scriptdir/remote/config"
+    local config_dir destination
+
+    [ -f "$config_source" ] || return 0
+
+    config_dir=$(remote_ssh "$host" \
+        'printf "%s\n" "${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts"') || return 1
+    [ -n "$config_dir" ] || return 1
+
+    if remote_ssh "$host" "test -e '$config_dir/config'"; then
+        destination="$config_dir/config.new"
+    else
+        destination="$config_dir/config"
+    fi
+
+    remote_ssh "$host" "mkdir -p '$config_dir'" || return 1
+    remote_scp "$config_source" "$host" "$destination"
+}
+
+# @description Deploys every remote/ script and remote/config to each configured
+#   host, reporting each failure and continuing so one bad host cannot hide the
+#   others.
 # @return 0 when all deployments succeed; increments REMOTE_FAILURE_COUNT
-#   otherwise. An empty host list or script set is a no-op.
+#   otherwise. An empty host list is a no-op.
+# AI-generated code (unreviewed by a human)
 install_remote_scripts() {
     local host script
 
     REMOTE_FAILURE_COUNT=0
-    for script in "$scriptdir"/remote/*.sh; do
-        [ -f "$script" ] || continue
-        for host in "${REMOTE_SERVERS[@]}"; do
+    for host in "${REMOTE_SERVERS[@]}"; do
+        for script in "$scriptdir"/remote/*.sh; do
+            [ -f "$script" ] || continue
             if install_one_remote_script "$host" "$script"; then
                 success "Installed $(basename "$script") on $host"
             else
@@ -268,6 +297,13 @@ install_remote_scripts() {
                 REMOTE_FAILURE_COUNT=$((REMOTE_FAILURE_COUNT + 1))
             fi
         done
+
+        if install_remote_config_on_host "$host"; then
+            success "Installed config on $host"
+        else
+            error "Failed to install config on $host"
+            REMOTE_FAILURE_COUNT=$((REMOTE_FAILURE_COUNT + 1))
+        fi
     done
 }
 

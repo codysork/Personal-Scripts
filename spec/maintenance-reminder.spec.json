@@ -87,7 +87,7 @@
       ],
       "effects": {
         "read_paths": [
-          "config (installed, legacy, repository, or -c FILE)",
+          "config (installed, legacy, local/config, or -c FILE)",
           "$STATE_DIR/last-reminder",
           "$STATE_DIR/pending",
           "$HOME/$REMOTE_STATE_DIR on SERVER"
