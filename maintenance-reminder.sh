@@ -23,12 +23,10 @@ set -uo pipefail
 # Configuration helpers
 #------------------------------------------------------------------------------
 
-# AI-generated documentation (not reviewed by a human)
 # @description Extracts config-file options from the script arguments, leaving
 #   all other arguments for the normal parser.
 # @param $@ Arguments passed to the script.
 # @return 0; sets CONFIG_FILE and SCRIPT_ARGS. Exits 2 for a missing value.
-# AI-generated code (unreviewed by a human)
 parse_config_args() {
     CONFIG_FILE="${USER_SCRIPTS_CONFIG:-}"
     SCRIPT_ARGS=()
@@ -59,11 +57,9 @@ parse_config_args() {
     done
 }
 
-# AI-generated documentation (not reviewed by a human)
 # @description Prints usage and exits when a help option is present.
 # @param $@ Arguments remaining after config extraction.
 # @return Does not return when help is requested; exits 0.
-# AI-generated code (unreviewed by a human)
 show_help_if_requested() {
     local arg
 
@@ -77,13 +73,11 @@ show_help_if_requested() {
     done
 }
 
-# AI-generated documentation (not reviewed by a human)
 # @description Finds the first readable config file in the installed, legacy,
 #   and repository locations, in that order.
 # @param $1 Directory containing the repository config template.
 # @return 0; prints the chosen path, or returns 1 and prints nothing if none
 #   is readable.
-# AI-generated code (unreviewed by a human)
 resolve_config_file() {
     local repo_dir=$1
     local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts"
@@ -102,12 +96,10 @@ resolve_config_file() {
     return 1
 }
 
-# AI-generated documentation (not reviewed by a human)
 # @description Loads the chosen config, falling back to the first readable
 #   default when no file was requested explicitly.
 # @param $1 Directory containing the repository config template.
 # @return 0; a requested but unreadable file is reported and exits 1.
-# AI-generated code (unreviewed by a human)
 load_config() {
     local repo_dir=$1
     local path=$CONFIG_FILE
@@ -356,12 +348,10 @@ check_due() {
     (( NOW - last >= INTERVAL ))
 }
 
-# AI-generated documentation (not reviewed by a human)
 # @description Reads one target's maintenance state, reporting retrieval
 #   problems in the wording used for that target.
 # @param $1 Target name: Local or Remote.
 # @return 0; prints PENDING, MISSING, a timestamp, or the remote status output.
-# AI-generated code (unreviewed by a human)
 maintenance_state() {
 
     local target=$1
@@ -391,11 +381,9 @@ maintenance_state() {
     printf '%s\n' "$last"
 }
 
-# AI-generated documentation (not reviewed by a human)
 # @description Marks one target's maintenance as pending.
 # @param $1 Target name: Local or Remote.
 # @return 0 on success; local failures exit via error, remote failures return 1.
-# AI-generated code (unreviewed by a human)
 mark_maintenance_pending() {
 
     if [[ "$1" == "Local" ]]; then
@@ -410,7 +398,6 @@ mark_maintenance_pending() {
     fi
 }
 
-# AI-generated documentation (not reviewed by a human)
 # @description Applies the pending and missing state sentinels and updates the
 #   target's due flag and status.
 # @param $1 Target name: Local or Remote.
@@ -418,7 +405,6 @@ mark_maintenance_pending() {
 # @param $3 State value read for the target.
 # @return 0 when pending was handled, 1 when missing was handled,
 #   2 when the state is a timestamp and checking should continue.
-# AI-generated code (unreviewed by a human)
 handle_state() {
 
     local target=$1
@@ -443,12 +429,10 @@ handle_state() {
     return 2
 }
 
-# AI-generated documentation (not reviewed by a human)
 # @description Checks one target's maintenance state and updates its due flag
 #   and status.
 # @param $1 Target name: Local or Remote.
 # @return 0; problems are reported and reflected in <TARGET>_STATUS.
-# AI-generated code (unreviewed by a human)
 check_maintenance() {
 
     local target=$1
@@ -493,7 +477,6 @@ check_maintenance() {
     due=1
 }
 
-# AI-generated documentation (not reviewed by a human)
 # @description Sends the notification for one maintenance target using a single
 #   wording pattern that names the target being checked.
 # @param $1 Target name used in the title: Local or Remote.
@@ -501,7 +484,6 @@ check_maintenance() {
 # @param $3 1 when maintenance is due.
 # @param $4 Current status; only "ok" counts as healthy.
 # @return 0; the status returned by notify.
-# AI-generated code (unreviewed by a human)
 notify_status() {
 
     local target=$1
@@ -529,7 +511,6 @@ notify_status() {
 # @description Sends the local maintenance notification with an urgency that
 #   reflects due, healthy, or unknown status.
 # @return 0.
-# AI-generated code (unreviewed by a human)
 notify_local() {
 
     notify_status Local localhost "$LOCAL_DUE" "$LOCAL_STATUS"
@@ -538,7 +519,6 @@ notify_local() {
 # @description Sends the remote maintenance notification with an urgency that
 #   reflects due, healthy, or unknown status.
 # @return 0.
-# AI-generated code (unreviewed by a human)
 notify_remote() {
 
     notify_status Remote "$SERVER" "$REMOTE_DUE" "$REMOTE_STATUS"

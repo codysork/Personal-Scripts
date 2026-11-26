@@ -138,7 +138,6 @@ Align wrapped lines under the text of their tag: continuations of
 `@description` start under the description text, and continuations of `@note`
 start under the note text.
 
-<!-- AI-generated documentation (not reviewed by a human) -->
 `@file` must name the file it heads, and `@description` is required in every
 file header. `@author`, `@created`, and `@modified` are optional metadata carried
 by top-level scripts: keep them accurate, and update `@modified` to the current
@@ -159,7 +158,6 @@ line directly above the function it covers.
 function_name() {
 ```
 
-<!-- AI-generated documentation (not reviewed by a human) -->
 Use these tags:
 
 1. `@description` — one or two sentences about intent, not a restatement of the

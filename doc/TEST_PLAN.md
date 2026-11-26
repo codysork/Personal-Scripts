@@ -153,7 +153,6 @@ set `XDG_CONFIG_HOME=$S/xdg`.
 Always use a scratch `STATE_DIR`, a `notify-send` shim, and an `ssh` shim that
 logs its arguments.
 
-<!-- AI-generated documentation (not reviewed by a human) -->
 1. **First run initializes.** `SERVER=""`, empty `$S/state`. Expect
     `Local Maintenance: Good to Go!`, a new `last-reminder`, and no `pending`.
 2. **Due check.** Write `date +%s - 6*86400` into `last-reminder`, set
