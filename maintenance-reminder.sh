@@ -20,69 +20,127 @@
 set -uo pipefail
 
 #------------------------------------------------------------------------------
+# Configuration helpers
+#------------------------------------------------------------------------------
+
+# AI-generated documentation (not reviewed by a human)
+# @description Extracts config-file options from the script arguments, leaving
+#   all other arguments for the normal parser.
+# @param $@ Arguments passed to the script.
+# @return 0; sets CONFIG_FILE and SCRIPT_ARGS. Exits 2 for a missing value.
+# AI-generated code (unreviewed by a human)
+parse_config_args() {
+    CONFIG_FILE="${USER_SCRIPTS_CONFIG:-}"
+    SCRIPT_ARGS=()
+
+    while (($#)); do
+        case "$1" in
+            --config-file|-c)
+                if (($# < 2)) || [[ -z "$2" ]]; then
+                    printf 'Error: %s requires a config file.\n' "$1" >&2
+                    exit 2
+                fi
+                CONFIG_FILE=$2
+                shift 2
+                ;;
+            --config-file=*)
+                CONFIG_FILE=${1#*=}
+                if [[ -z "$CONFIG_FILE" ]]; then
+                    printf 'Error: --config-file requires a config file.\n' >&2
+                    exit 2
+                fi
+                shift
+                ;;
+            *)
+                SCRIPT_ARGS+=("$1")
+                shift
+                ;;
+        esac
+    done
+}
+
+# AI-generated documentation (not reviewed by a human)
+# @description Prints usage and exits when a help option is present.
+# @param $@ Arguments remaining after config extraction.
+# @return Does not return when help is requested; exits 0.
+# AI-generated code (unreviewed by a human)
+show_help_if_requested() {
+    local arg
+
+    for arg in "$@"; do
+        case "$arg" in
+            -h|--help)
+                printf 'Usage: %s [-c|--config-file FILE] [-h|--help]\n' "$0"
+                exit 0
+                ;;
+        esac
+    done
+}
+
+# AI-generated documentation (not reviewed by a human)
+# @description Finds the first readable config file in the installed, legacy,
+#   and repository locations, in that order.
+# @param $1 Directory containing the repository config template.
+# @return 0; prints the chosen path, or returns 1 and prints nothing if none
+#   is readable.
+# AI-generated code (unreviewed by a human)
+resolve_config_file() {
+    local repo_dir=$1
+    local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts"
+    local candidate
+
+    for candidate in \
+        "$config_dir/config" \
+        "$config_dir/config.conf" \
+        "$repo_dir/config"; do
+        if [[ -r "$candidate" ]]; then
+            printf '%s\n' "$candidate"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+# AI-generated documentation (not reviewed by a human)
+# @description Loads the chosen config, falling back to the first readable
+#   default when no file was requested explicitly.
+# @param $1 Directory containing the repository config template.
+# @return 0; a requested but unreadable file is reported and exits 1.
+# AI-generated code (unreviewed by a human)
+load_config() {
+    local repo_dir=$1
+    local path=$CONFIG_FILE
+
+    if [[ -z "$path" ]]; then
+        path=$(resolve_config_file "$repo_dir") || return 0
+        [[ -n "$path" ]] || return 0
+    fi
+
+    if [[ ! -r "$path" ]]; then
+        printf 'Error: Config file is not readable: %s\n' "$path" >&2
+        exit 1
+    fi
+
+    # shellcheck disable=SC1090
+    source "$path"
+    export USER_SCRIPTS_CONFIG="$path"
+}
+
+#------------------------------------------------------------------------------
 # Configuration
 #------------------------------------------------------------------------------
 
-_master_config="${USER_SCRIPTS_CONFIG:-}"
-_script_args=()
-while (($#)); do
-    case "$1" in
-        --config-file|-c)
-            if (($# < 2)) || [[ -z "$2" ]]; then
-                printf 'Error: %s requires a config file.\n' "$1" >&2
-                exit 2
-            fi
-            _master_config=$2
-            shift 2
-            ;;
-        --config-file=*)
-            _master_config=${1#*=}
-            if [[ -z "$_master_config" ]]; then
-                printf 'Error: --config-file requires a config file.\n' >&2
-                exit 2
-            fi
-            shift
-            ;;
-        *)
-            _script_args+=("$1")
-            shift
-            ;;
-    esac
-done
-set -- "${_script_args[@]}"
-unset _script_args
+parse_config_args "$@"
+set -- "${SCRIPT_ARGS[@]}"
+unset SCRIPT_ARGS
 
-for arg in "$@"; do
-    case "$arg" in
-        -h|--help)
-            printf 'Usage: %s [-c|--config-file FILE] [-h|--help]\n' "$0"
-            exit 0
-            ;;
-    esac
-done
+show_help_if_requested "$@"
 
 # Load the master config. Environment variables override config values.
-_config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts"
-_repo_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-if [[ -z "$_master_config" ]]; then
-    if [[ -r "$_config_dir/config" ]]; then
-        _master_config="$_config_dir/config"
-    elif [[ -r "$_config_dir/config.conf" ]]; then
-        _master_config="$_config_dir/config.conf"
-    elif [[ -r "$_repo_dir/config" ]]; then
-        _master_config="$_repo_dir/config"
-    fi
-fi
-if [[ -n "$_master_config" ]]; then
-    if [[ ! -r "$_master_config" ]]; then
-        printf 'Error: Config file is not readable: %s\n' "$_master_config" >&2
-        exit 1
-    fi
-    # shellcheck disable=SC1090
-    source "$_master_config"
-    export USER_SCRIPTS_CONFIG="$_master_config"
-fi
-unset _config_dir _repo_dir _master_config
+REPO_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+load_config "$REPO_DIR"
+unset CONFIG_FILE REPO_DIR
 
 #------------------------------------------------------------------------------
 # Constants
