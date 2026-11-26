@@ -8,7 +8,7 @@
       "each user@host entry in REMOTE_SERVERS (ssh)"
     ],
     "allowed_write_paths": [
-      "on each server: $BACKUP_DIR/<archive> (via that server's backup.sh)"
+      "on each server: $BACKUP_DIR/$ARCHIVE_HEADER-<timestamp>.tar.gz (created by that server's backup.sh)"
     ],
     "allow_sudo": false,
     "require_confirmation_for_destructive": true,
@@ -18,7 +18,7 @@
     {
       "id": "server-backup",
       "path": "local/server-backup.sh",
-      "purpose": "SKELETON - not implemented. Runs on this machine and invokes each host in REMOTE_SERVERS to execute that host's installed backup.sh, so each server creates its own local archive instead of sending data here. Planned behavior: help and config-file options exit before any SSH; every host is attempted; a failed host is reported without hiding the others; a nonzero exit means at least one host failed. Open questions: whether to pass --dry-run or --notify-send through to the remote backup, whether a per-host timeout should override SSH_TIMEOUT, and whether remote output is collected or streamed.",
+      "purpose": "SKELETON - not implemented. Runs on this machine and invokes each host in REMOTE_SERVERS to execute that host's installed backup.sh, so each server creates its own local archive instead of sending data here. Expected outcome: after a successful run an archive matching $BACKUP_DIR/$ARCHIVE_HEADER-<timestamp>.tar.gz exists on each server, verified by a remote path check. Planned behavior: help and config-file options exit before any SSH; every host is attempted; a failed host is reported without hiding the others; a nonzero exit means at least one host failed. Open questions: whether to pass --dry-run or --notify-send through to the remote backup, whether a per-host timeout should override SSH_TIMEOUT, and whether remote output is collected or streamed.",
       "invocation": "./local/server-backup.sh [-h|--help] [-c|--config-file FILE]",
       "arguments": [
         {
@@ -72,7 +72,7 @@
           "config (installed, legacy, repository, or -c FILE)"
         ],
         "write_paths": [
-          "on each server: $BACKUP_DIR/<archive> (via that server's backup.sh)"
+          "on each server: $BACKUP_DIR/$ARCHIVE_HEADER-<timestamp>.tar.gz (created by that server's backup.sh)"
         ],
         "network_hosts": [
           "each user@host entry in REMOTE_SERVERS (ssh)"
@@ -86,7 +86,7 @@
       "exit_codes": [
         {
           "code": 0,
-          "meaning": "Help printed, or every configured host ran its backup successfully; an empty REMOTE_SERVERS is also success."
+          "meaning": "Help printed, or every configured host ran its backup successfully and a newly created archive is present on that server under $BACKUP_DIR; an empty REMOTE_SERVERS is also success."
         },
         {
           "code": 1,
@@ -109,6 +109,11 @@
       "id": "server-backup-missing-config-value",
       "command": ["bash", "local/server-backup.sh", "-c"],
       "expected_exit": 2
+    },
+    {
+      "id": "server-backup-archive-found-on-server",
+      "command": ["bash", "-c", "bash local/server-backup.sh && ssh user@server.example 'ls \"$BACKUP_DIR\"/\"$ARCHIVE_HEADER\"-*.tar.gz >/dev/null 2>&1'"],
+      "expected_exit": 0
     }
   ]
 }
