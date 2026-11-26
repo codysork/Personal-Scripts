@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "user-scripts configuration",
+  "description": "JSON form of the values declared in the repository's config file. Scalars mirror ${VAR:-default} entries; arrays are config-only. Paths are literal strings; a JSON consumer must expand or resolve them itself.",
+  "type": "object",
+  "properties": {
+    "BACKUP_DIR": { "type": "string", "minLength": 1, "description": "Destination directory for backup archives." },
+    "ARCHIVE_HEADER": { "type": "string", "minLength": 1, "description": "Prefix of archive filenames before the timestamp." },
+    "STATE_DIR": { "type": "string", "minLength": 1, "description": "Directory holding maintenance countdown and pending state." },
+    "BACKUP_SOURCES": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Directories to back up." },
+    "EXCLUDES": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Paths passed to tar as exclusions." },
+    "MAX_BACKUP_AGE_DAYS": { "type": "integer", "minimum": 0, "description": "Age in days at which the newest backup counts as overdue." },
+    "MIN_SNAPSHOTS": { "type": "integer", "minimum": 0, "description": "Minimum number of Timeshift snapshots required." },
+    "MAX_SNAPSHOT_AGE_DAYS": { "type": "integer", "minimum": 0, "description": "Age in days at which the newest snapshot counts as too old." },
+    "GIT_CHECKER": { "type": "string", "minLength": 1, "description": "Path to the executable used for Git repository checks." },
+    "DAYS_DUE": { "type": "integer", "minimum": 0, "description": "Maintenance interval in days; 0 makes maintenance due immediately." },
+    "SERVER": { "type": "string", "description": "Remote host for maintenance checks; empty disables them." },
+    "SERVER_USER": { "type": "string", "description": "SSH user for SERVER; empty skips remote maintenance with a warning." },
+    "SSH_TIMEOUT": { "type": "integer", "minimum": 1, "description": "SSH connect timeout in seconds." },
+    "REMOTE_STATE_DIR": { "type": "string", "minLength": 1, "description": "Remote state directory relative to the remote home." },
+    "SEARCH_DIR": { "type": "string", "minLength": 1, "description": "Root directory searched for Git repositories." },
+    "IGNORE_DIRS": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Subtrees skipped by the Git repository search." },
+    "REMOTE_SERVERS": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "user@host targets for remote deployment; empty disables it." },
+    "REMOTE_INSTALL_DIR": { "type": "string", "minLength": 1, "description": "Destination directory for scripts deployed to remote hosts." }
+  },
+  "required": [
+    "BACKUP_DIR", "ARCHIVE_HEADER", "STATE_DIR", "BACKUP_SOURCES", "EXCLUDES",
+    "MAX_BACKUP_AGE_DAYS", "MIN_SNAPSHOTS", "MAX_SNAPSHOT_AGE_DAYS", "GIT_CHECKER",
+    "DAYS_DUE", "SERVER", "SERVER_USER", "SSH_TIMEOUT", "REMOTE_STATE_DIR",
+    "SEARCH_DIR", "IGNORE_DIRS", "REMOTE_SERVERS", "REMOTE_INSTALL_DIR"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,56 @@
+{
+  "schema_version": "0.1.0",
+  "suite": "personal-scripts",
+  "shell": "bash",
+  "policy": {
+    "allow_network": false,
+    "allowed_hosts": [],
+    "allowed_write_paths": [],
+    "allow_sudo": false,
+    "require_confirmation_for_destructive": true,
+    "default_timeout_seconds": 30
+  },
+  "scripts": [
+    {
+      "id": "example",
+      "path": "scripts/example.sh",
+      "purpose": "Describe what this script does.",
+      "invocation": "scripts/example.sh [OPTIONS]",
+      "arguments": [
+        {
+          "name": "--input",
+          "type": "path",
+          "required": true,
+          "description": "Input file to process."
+        }
+      ],
+      "environment": [],
+      "effects": {
+        "read_paths": [],
+        "write_paths": [],
+        "network_hosts": [],
+        "subprocesses": [],
+        "uses_sudo": false,
+        "destructive": false
+      },
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "Success."
+        },
+        {
+          "code": 1,
+          "meaning": "General failure."
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "example-help",
+      "command": ["bash", "scripts/example.sh", "--help"],
+      "expected_exit": 0
+    }
+  ]
+}
+
