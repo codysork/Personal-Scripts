@@ -53,8 +53,8 @@ if [[ -z "$_master_config" ]]; then
         _master_config="$_config_dir/config"
     elif [[ -r "$_config_dir/config.conf" ]]; then
         _master_config="$_config_dir/config.conf"
-    elif [[ -r "$_repo_dir/config" ]]; then
-        _master_config="$_repo_dir/config"
+    elif [[ -r "$_repo_dir/local/config" ]]; then
+        _master_config="$_repo_dir/local/config"
     fi
 fi
 if [[ -n "$_master_config" ]]; then

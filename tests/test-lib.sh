@@ -318,15 +318,15 @@ exec /usr/bin/install "\${args[@]}"
 EOF
 }
 
-# @description Copies the scripts and config into a throwaway repo under the
-#   scratch tree and adds a Style/dummy.css sentinel. Install and uninstall
+# @description Copies the scripts and local/config into a throwaway repo under
+#   the scratch tree and adds a Style/dummy.css sentinel. Install and uninstall
 #   tests run against this copy so the real checkout is never modified.
 # @param $1 Destination directory for the copy.
 # @return 0.
 make_repo_copy() {
     local target=$1
     mkdir -p "$target/Style" "$target/local" "$target/remote"
-    cp "$REPO_ROOT"/*.sh "$REPO_ROOT/config" "$target/"
+    cp "$REPO_ROOT"/*.sh "$target/"
     cp -R "$REPO_ROOT/local/." "$target/local/"
     cp -R "$REPO_ROOT/remote/." "$target/remote/"
     printf 'sentinel\n' > "$target/Style/dummy.css"

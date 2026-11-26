@@ -62,7 +62,7 @@
           "local/*.sh",
           "remote/*.sh",
           "remote/config",
-          "config",
+          "local/config",
           "${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts/config",
           "${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts/config.conf"
         ],

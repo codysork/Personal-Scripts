@@ -75,7 +75,7 @@ show_help_if_requested() {
 
 # @description Finds the first readable config file in the installed, legacy,
 #   and repository locations, in that order.
-# @param $1 Directory containing the repository config template.
+# @param $1 Repository root, where the config template lives in local/config.
 # @return 0; prints the chosen path, or returns 1 and prints nothing if none
 #   is readable.
 resolve_config_file() {
@@ -86,7 +86,7 @@ resolve_config_file() {
     for candidate in \
         "$config_dir/config" \
         "$config_dir/config.conf" \
-        "$repo_dir/config"; do
+        "$repo_dir/local/config"; do
         if [[ -r "$candidate" ]]; then
             printf '%s\n' "$candidate"
             return 0

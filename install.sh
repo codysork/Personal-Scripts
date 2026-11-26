@@ -171,7 +171,7 @@ resolve_master_config() {
     for candidate in \
         "$config_dir/config" \
         "$config_dir/config.conf" \
-        "$scriptdir/config"; do
+        "$scriptdir/local/config"; do
         if [ -r "$candidate" ]; then
             printf '%s\n' "$candidate"
             return 0
@@ -297,7 +297,7 @@ require_root
 scriptdir="$(cd "$(dirname "$0")" && pwd)"
 resolve_target_identity
 
-config_source="$scriptdir/config"
+config_source="$scriptdir/local/config"
 config_dir="${XDG_CONFIG_HOME:-$target_home/.config}/user-scripts"
 config_target="$config_dir/config"
 legacy_config="$config_dir/config.conf"

@@ -79,7 +79,7 @@ test_config_repo_template_fallback() {
     local repo="$SCRATCH/repo-copy"
     make_repo_copy "$repo"
     # Replace the copied template so every expected value comes from this test.
-    write_config "$repo/config" expected-template-header
+    write_config "$repo/local/config" expected-template-header
     run_script_in "$repo" "$repo/local/backup.sh" --dry-run
     assert_contains "$(stdout_text)" \
         "Backup would be created: $SCRATCH/out/expected-template-header-"
