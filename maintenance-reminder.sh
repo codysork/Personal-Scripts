@@ -391,44 +391,55 @@ check_remote_maintenance() {
     esac
 }
 
+# AI-generated documentation (not reviewed by a human)
+# @description Sends the notification for one maintenance target using a single
+#   wording pattern that names the target being checked.
+# @param $1 Target name used in the title: Local or Remote.
+# @param $2 Target address used in the message: localhost or $SERVER.
+# @param $3 1 when maintenance is due.
+# @param $4 Current status; only "ok" counts as healthy.
+# @return 0; the status returned by notify.
+# AI-generated code (unreviewed by a human)
+notify_status() {
+
+    local target=$1
+    local address=$2
+    local due=$3
+    local status=$4
+    local urgency=low
+    local suffix=': Unknown'
+    local message
+
+    if (( due )); then
+        urgency=normal
+        suffix=' Due'
+        message="Time to run maintenance on $address."
+    elif [[ "$status" == "ok" ]]; then
+        suffix=': Good to Go!'
+        message="No maintenance is currently due on $address."
+    else
+        message="Could not determine maintenance status for $address."
+    fi
+
+    notify "$urgency" "$target Maintenance$suffix" "$message"
+}
+
 # @description Sends the local maintenance notification with an urgency that
 #   reflects due, healthy, or unknown status.
 # @return 0.
+# AI-generated code (unreviewed by a human)
 notify_local() {
 
-    if (( LOCAL_DUE )); then
-        notify normal \
-            "Local Maintenance Due" \
-            "Time to run your local arch-maintenance.sh."
-    elif [[ "$LOCAL_STATUS" == "ok" ]]; then
-        notify low \
-            "Local Maintenance: Good to Go!" \
-            "No local maintenance is currently due."
-    else
-        notify low \
-            "Local Maintenance: Unknown" \
-            "Could not determine local maintenance status."
-    fi
+    notify_status Local localhost "$LOCAL_DUE" "$LOCAL_STATUS"
 }
 
 # @description Sends the remote maintenance notification with an urgency that
 #   reflects due, healthy, or unknown status.
 # @return 0.
+# AI-generated code (unreviewed by a human)
 notify_remote() {
 
-    if (( REMOTE_DUE )); then
-        notify normal \
-            "Remote Maintenance Due" \
-            "Time to run maintenance on $SERVER."
-    elif [[ "$REMOTE_STATUS" == "ok" ]]; then
-        notify low \
-            "Remote Maintenance: Good to Go!" \
-            "No remote maintenance is currently due."
-    else
-        notify low \
-            "Remote Maintenance: Unknown" \
-            "Could not determine maintenance status for $SERVER."
-    fi
+    notify_status Remote "$SERVER" "$REMOTE_DUE" "$REMOTE_STATUS"
 }
 
 # @description Sends reminders for all configured targets, including the
