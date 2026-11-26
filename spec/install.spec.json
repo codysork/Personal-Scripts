@@ -11,7 +11,8 @@
       "/usr/local/bin",
       "${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts",
       "remote temporary directory created by mktemp -d",
-      "$REMOTE_INSTALL_DIR/<script> on each host"
+      "$REMOTE_INSTALL_DIR/<script> on each host",
+      "${XDG_CONFIG_HOME:-~/.config}/user-scripts/config on each host (from remote/config)"
     ],
     "allow_sudo": true,
     "require_confirmation_for_destructive": true,
@@ -21,7 +22,7 @@
     {
       "id": "install",
       "path": "install.sh",
-      "purpose": "Installs every local/*.sh script into /usr/local/bin, deploys remote/*.sh scripts over SSH to configured hosts, and installs the shared config template while migrating a legacy config.conf. Arguments are ignored; settings come from the config file and environment.",
+      "purpose": "Installs every local/*.sh script into /usr/local/bin, deploys remote/*.sh scripts over SSH to configured hosts, and installs the shared config template while migrating a legacy config.conf. Arguments are ignored; settings come from the config file and environment. Planned, not yet implemented: copy remote/config to each host's ${XDG_CONFIG_HOME:-~/.config}/user-scripts/config so the remote/ clones source server settings instead of their hardcoded defaults.",
       "invocation": "sudo ./install.sh",
       "arguments": [],
       "environment": [
@@ -60,6 +61,7 @@
         "read_paths": [
           "local/*.sh",
           "remote/*.sh",
+          "remote/config",
           "config",
           "${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts/config",
           "${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts/config.conf"
@@ -94,11 +96,11 @@
       "exit_codes": [
         {
           "code": 0,
-          "meaning": "All local scripts were installed (individual local failures are reported only), config was deployed, and every configured remote deployment succeeded; no remote hosts is also success."
+          "meaning": "All local scripts were installed (individual local failures are reported only), the local config was deployed, and every configured remote deployment (scripts and, once implemented, remote/config) succeeded; no remote hosts is also success."
         },
         {
           "code": 1,
-          "meaning": "Not run as root, an explicitly requested config file is unreadable, or one or more remote deployments failed."
+          "meaning": "Not run as root, an explicitly requested config file is unreadable, or one or more remote deployments (scripts or, once implemented, remote/config) failed."
         }
       ]
     }

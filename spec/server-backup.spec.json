@@ -3,12 +3,11 @@
   "suite": "personal-scripts",
   "shell": "bash",
   "policy": {
-    "allow_network": true,
-    "allowed_hosts": [
-      "each user@host entry in REMOTE_SERVERS (ssh)"
-    ],
+    "allow_network": false,
+    "allowed_hosts": [],
     "allowed_write_paths": [
-      "on each server: $BACKUP_DIR/$ARCHIVE_HEADER-<timestamp>.tar.gz (created by that server's backup.sh)"
+      "$HOME/Sync/Nextcloud/Backup/Remote (created when missing)",
+      "$HOME/Sync/Nextcloud/Backup/Remote/sorkhackmac12-remote-backup-<YYYYmmddHHMMSS>.tar.gz"
     ],
     "allow_sudo": false,
     "require_confirmation_for_destructive": true,
@@ -17,68 +16,73 @@
   "scripts": [
     {
       "id": "server-backup",
-      "path": "local/server-backup.sh",
-      "purpose": "SKELETON - not implemented. Runs on this machine and invokes each host in REMOTE_SERVERS to execute that host's installed backup.sh, so each server creates its own local archive instead of sending data here. Expected outcome: after a successful run an archive matching $BACKUP_DIR/$ARCHIVE_HEADER-<timestamp>.tar.gz exists on each server, verified by a remote path check. Planned behavior: help and config-file options exit before any SSH; every host is attempted; a failed host is reported without hiding the others; a nonzero exit means at least one host failed. Open questions: whether to pass --dry-run or --notify-send through to the remote backup, whether a per-host timeout should override SSH_TIMEOUT, and whether remote output is collected or streamed.",
-      "invocation": "./local/server-backup.sh [-h|--help] [-c|--config-file FILE]",
+      "path": "remote/server-backup.sh",
+      "purpose": "Runs on a server and creates a gzip-compressed tar archive of the server's own directories into $HOME/Sync/Nextcloud/Backup/Remote. Settings are hardcoded in the script; it does not load a config file or contact other hosts. install.sh deploys this script to each host in REMOTE_SERVERS and does not run it remotely. Expected outcome after a successful run: an archive matching sorkhackmac12-remote-backup-<YYYYmmddHHMMSS>.tar.gz exists in that backup directory. Open questions: help text advertises --wait-for-dbus while the parser accepts --wait-for-notification-daemon; remote/config is planned for deployment by install.sh but this script does not source any config file.",
+      "invocation": "./server-backup.sh [-h|--help] [-v|--verbose] [--dry-run] [--wait-for-notification-daemon] [--notify-send]",
       "arguments": [
         {
           "name": "-h|--help",
           "type": "boolean",
           "required": false,
-          "description": "Print usage and exit 0 before contacting any host."
+          "description": "Print usage and the option list, then exit 0."
         },
         {
-          "name": "-c|--config-file FILE",
-          "type": "path",
+          "name": "-v|--verbose",
+          "type": "boolean",
           "required": false,
-          "description": "Load settings from FILE; takes precedence over USER_SCRIPTS_CONFIG and installed/legacy/repository lookup. A missing value exits 2."
+          "description": "Pass --verbose to tar."
         },
         {
-          "name": "--config-file=FILE",
-          "type": "path",
+          "name": "--dry-run",
+          "type": "boolean",
           "required": false,
-          "description": "Equivalent to -c FILE; an empty value exits 2."
+          "description": "Skip archive creation and verification; report the archive path that would be produced."
+        },
+        {
+          "name": "--wait-for-notification-daemon",
+          "type": "boolean",
+          "required": false,
+          "description": "Wait in 60-second intervals until dunst, mako, xfce4-notifyd, or notification-daemon is running."
+        },
+        {
+          "name": "--notify-send",
+          "type": "boolean",
+          "required": false,
+          "description": "Send a desktop notification after completion; exits 1 when no notification daemon is running."
         }
       ],
       "environment": [
         {
-          "name": "USER_SCRIPTS_CONFIG",
-          "description": "Config file path used when no config-file option is given.",
+          "name": "HOME",
+          "description": "Base for the hardcoded backup directory, source directories, and exclusion strings.",
           "default": ""
-        },
-        {
-          "name": "XDG_CONFIG_HOME",
-          "description": "Base directory for the installed config lookup.",
-          "default": "$HOME/.config"
-        },
-        {
-          "name": "REMOTE_SERVERS",
-          "description": "Array of user@host targets; an empty list makes this script a no-op that exits 0.",
-          "default": "()"
-        },
-        {
-          "name": "REMOTE_INSTALL_DIR",
-          "description": "Directory on each server where backup.sh is installed; planned command path.",
-          "default": "/usr/local/bin"
-        },
-        {
-          "name": "SSH_TIMEOUT",
-          "description": "Non-interactive ssh connect timeout in seconds.",
-          "default": "5"
         }
       ],
       "effects": {
         "read_paths": [
-          "config (installed, legacy, repository, or -c FILE)"
+          "$HOME/.config",
+          "$HOME/Hosting",
+          "$HOME/Scripts",
+          "$EXCLUDES paths (currently empty)"
         ],
         "write_paths": [
-          "on each server: $BACKUP_DIR/$ARCHIVE_HEADER-<timestamp>.tar.gz (created by that server's backup.sh)"
+          "$HOME/Sync/Nextcloud/Backup/Remote (mkdir -p)",
+          "$HOME/Sync/Nextcloud/Backup/Remote/sorkhackmac12-remote-backup-<YYYYmmddHHMMSS>.tar.gz"
         ],
-        "network_hosts": [
-          "each user@host entry in REMOTE_SERVERS (ssh)"
-        ],
+        "network_hosts": [],
         "subprocesses": [
-          "ssh"
+          "date",
+          "mkdir",
+          "du",
+          "awk",
+          "tar",
+          "pv",
+          "gzip",
+          "rm",
+          "mv",
+          "pgrep",
+          "sleep",
+          "notify-send"
         ],
         "uses_sudo": false,
         "destructive": false
@@ -86,15 +90,11 @@
       "exit_codes": [
         {
           "code": 0,
-          "meaning": "Help printed, or every configured host ran its backup successfully and a newly created archive is present on that server under $BACKUP_DIR; an empty REMOTE_SERVERS is also success."
+          "meaning": "Help printed, dry-run completed, or archive created and verified; a notification is sent when requested."
         },
         {
           "code": 1,
-          "meaning": "Config file unreadable, or at least one host could not be reached or its backup exited nonzero."
-        },
-        {
-          "code": 2,
-          "meaning": "A config-file option was supplied without a non-empty value."
+          "meaning": "Unknown option, a source directory missing, archive creation or verification failed, or no notification daemon running with --notify-send."
         }
       ]
     }
@@ -102,18 +102,13 @@
   "tests": [
     {
       "id": "server-backup-help",
-      "command": ["bash", "local/server-backup.sh", "--help"],
+      "command": ["bash", "remote/server-backup.sh", "--help"],
       "expected_exit": 0
     },
     {
-      "id": "server-backup-missing-config-value",
-      "command": ["bash", "local/server-backup.sh", "-c"],
-      "expected_exit": 2
-    },
-    {
-      "id": "server-backup-archive-found-on-server",
-      "command": ["bash", "-c", "bash local/server-backup.sh && ssh user@server.example 'ls \"$BACKUP_DIR\"/\"$ARCHIVE_HEADER\"-*.tar.gz >/dev/null 2>&1'"],
-      "expected_exit": 0
+      "id": "server-backup-invalid-option",
+      "command": ["bash", "remote/server-backup.sh", "--not-an-option"],
+      "expected_exit": 1
     }
   ]
 }

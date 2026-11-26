@@ -1,0 +1,90 @@
+{
+  "schema_version": "1.0",
+  "suite": "personal-scripts",
+  "shell": "bash",
+  "policy": {
+    "allow_network": true,
+    "allowed_hosts": [
+      "git remotes of repositories checked by /usr/local/bin/git-checker.sh"
+    ],
+    "allowed_write_paths": [
+      "temporary directory created by mktemp -d",
+      "${XDG_STATE_HOME:-$HOME/.local/state}/arch-maintenance/pending (removed)",
+      "${XDG_STATE_HOME:-$HOME/.local/state}/arch-maintenance/last-reminder"
+    ],
+    "allow_sudo": true,
+    "require_confirmation_for_destructive": true,
+    "default_timeout_seconds": 30
+  },
+  "scripts": [
+    {
+      "id": "arch-server-maintenance",
+      "path": "remote/arch-server-maintenance.sh",
+      "purpose": "Runs on a server and produces a read-only Arch Linux maintenance report, then clears that server's pending maintenance marker. Settings are hardcoded in the script: it ignores arguments and does not load a config file or contact other hosts. install.sh deploys this script to each host in REMOTE_SERVERS and does not run it remotely. The Git repository check is performed by invoking /usr/local/bin/git-checker.sh, deployed separately from remote/git-checker.sh. Open questions: remote/config is planned for deployment by install.sh but this script does not source any config file, so its hardcoded backup path, snapshot limits, and checker path remain fixed.",
+      "invocation": "./arch-server-maintenance.sh (arguments are ignored)",
+      "arguments": [],
+      "environment": [
+        {
+          "name": "HOME",
+          "description": "Base for hardcoded backup path, searched home directory, and default state directory.",
+          "default": ""
+        },
+        {
+          "name": "XDG_STATE_HOME",
+          "description": "Base for the maintenance state directory holding pending and last-reminder.",
+          "default": "$HOME/.local/state"
+        }
+      ],
+      "effects": {
+        "read_paths": [
+          "/etc (pacnew/pacsave files and broken symlinks)",
+          "$HOME (broken symlinks)",
+          "/usr/lib/modules",
+          "/var/cache",
+          "$HOME/Nextcloud/Backup/Local",
+          "/usr/local/bin/git-checker.sh",
+          "${XDG_STATE_HOME:-$HOME/.local/state}/arch-maintenance"
+        ],
+        "write_paths": [
+          "temporary directory created by mktemp -d",
+          "${XDG_STATE_HOME:-$HOME/.local/state}/arch-maintenance/pending (removed)",
+          "${XDG_STATE_HOME:-$HOME/.local/state}/arch-maintenance/last-reminder"
+        ],
+        "network_hosts": [
+          "git remotes of repositories checked by /usr/local/bin/git-checker.sh"
+        ],
+        "subprocesses": [
+          "pacman",
+          "checkupdates",
+          "paccache",
+          "systemctl",
+          "journalctl",
+          "find",
+          "df",
+          "du",
+          "btrfs",
+          "fwupdmgr",
+          "date",
+          "sudo",
+          "timeshift",
+          "/usr/local/bin/git-checker.sh",
+          "mkdir",
+          "rm"
+        ],
+        "uses_sudo": true,
+        "destructive": false
+      },
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "The report completed; individual checks may print warnings or errors without changing the exit status."
+        },
+        {
+          "code": 1,
+          "meaning": "Run as root, or pacman missing."
+        }
+      ]
+    }
+  ],
+  "tests": []
+}

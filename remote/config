@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# @file config
+# @author Cody Sork <codysork@gmail.com> with help from AI agents
+# @modified 2026-11-25
+# @description Server configuration for the user-scripts suite.
+#
+# This file is sourced by the scripts, not executed. Every scalar value uses
+# the ${VAR:-default} form so an environment variable takes precedence:
+#
+#   DAYS_DUE=14 maintenance-reminder.sh
+#
+# Arrays are config-only; they have no environment-variable override.
+#
+# install.sh deploys a copy to:
+#   ${XDG_CONFIG_HOME:-$HOME/.config}/user-scripts/config.conf
+# Set USER_SCRIPTS_CONFIG to load a different file.
+
+#------------------------------------------------------------------------------
+# Shared paths (used by more than one script — keep in sync here)
+#------------------------------------------------------------------------------
+
+BACKUP_DIR="${BACKUP_DIR:-$HOME/Sync/Nextcloud/Backup/Remote}"
+ARCHIVE_HEADER="${ARCHIVE_HEADER:-sorkhackmac12-backup}"
+STATE_DIR="${STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/arch-maintenance}"
+
+#------------------------------------------------------------------------------
+# backup.sh
+#------------------------------------------------------------------------------
+
+BACKUP_SOURCES=(
+    "$HOME/.config"
+    "$HOME/.local/share"
+    "$HOME/Hosting/"
+    "$HOME/Scripts"
+)
+
+EXCLUDES=(
+)
+
+#------------------------------------------------------------------------------
+# arch-maintenance.sh
+#------------------------------------------------------------------------------
+
+MAX_BACKUP_AGE_DAYS="${MAX_BACKUP_AGE_DAYS:-30}"
+MIN_SNAPSHOTS="${MIN_SNAPSHOTS:-3}"
+MAX_SNAPSHOT_AGE_DAYS="${MAX_SNAPSHOT_AGE_DAYS:-30}"
+GIT_CHECKER="${GIT_CHECKER:-/usr/local/bin/git-checker.sh}"
+
+#------------------------------------------------------------------------------
+# maintenance-reminder.sh
+#------------------------------------------------------------------------------
+
+DAYS_DUE="${DAYS_DUE:-6}"
+
+# Use ${VAR-default} (not ${VAR:-default}) here so SERVER="" disables the
+# remote maintenance checks, as documented by maintenance-reminder.sh.
+SERVER="${SERVER-sork.local}"
+SERVER_USER="${SERVER_USER-cody}"
+SSH_TIMEOUT="${SSH_TIMEOUT:-5}"
+REMOTE_STATE_DIR="${REMOTE_STATE_DIR:-.local/state/arch-maintenance}"
+
+#------------------------------------------------------------------------------
+# git-checker.sh
+#------------------------------------------------------------------------------
+
+SEARCH_DIR="${SEARCH_DIR:-$HOME}"
+
+IGNORE_DIRS=(
+    "$HOME/.cache"
+    "$HOME/.cargo"
+    "$HOME/.local/share"
+    "$HOME/.oh-my-zsh"
+    "$HOME/.zim"
+    "$HOME/Sync/CodyVault"
+)
+
+#------------------------------------------------------------------------------
+# install.sh (remote deployment)
+#------------------------------------------------------------------------------
+
+# AI-generated code (unreviewed by a human)
+# Hosts receiving remote/*.sh. Each entry is a user@host string handed to ssh
+# and scp; an empty list disables remote deployment entirely.
+REMOTE_SERVERS=()
+
+# Destination directory for the deployed scripts on each remote host.
+REMOTE_INSTALL_DIR="${REMOTE_INSTALL_DIR:-/usr/local/bin}"
